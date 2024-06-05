@@ -111,7 +111,7 @@
 (defun compute-vertex-byte-size (attrs)
   (reduce
     (lambda (attr acc)
-      (+ acc (vertex-attribute-byte-size attr)))
+      (+ acc (vertex-attribute-byte-size attr))) 
     attrs))
 
 (defun create-geometry-buffer (attrs idx-format usage)
@@ -121,7 +121,7 @@
          (vao (gl:gen-vertex-array))
          (vbo (gl:gen-buffer))
          (ebo (if idx-format (gl:gen-buffer) nil)))
-    (format t "~a~%" nattrs)
+    ;(format t "~a~%" nattrs)
     (gl:bind-vertex-array vao)
     (gl:bind-buffer :array-buffer vbo) 
     (loop for attr in nattrs do (enable-vertex-attribute attr))

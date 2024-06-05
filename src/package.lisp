@@ -22,13 +22,16 @@
    :find-texture
    :texture-width
    :texture-height
+
+   :load-shader
    
    :init-draw2d
    :begin-draw2d
    :draw-texture-rect
    :draw-rect
+   :draw-line-loop
    :draw-text
-   :flush-batch
+   :flush-draw2d
    :end-draw2d))
 
 (in-package #:threegl)
