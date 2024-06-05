@@ -13,16 +13,18 @@
   :description "Graphics library"
   :serial T
   :pathname "src"
-  :components ((:file "package")             
+  :components ((:file "package")     
                (:file "common")
                (:file "draw2d")
                (:file "font")
-               (:file "geometry-buffer")
+               (:file "vertex-buffer")
+               (:file "geometry")
                (:file "material")
                (:file "model-mesh")
                (:file "shader")
                (:file "render-state")
                (:file "texture")
+               (:file "mdl2")
                (:file "uniform-buffer"))
   :depends-on ("3d-vectors"
                "3d-matrices"

@@ -12,9 +12,6 @@
 (defparameter *binding-point-gen* 0)
 
 (defun create-uniform-buffer (name size usage)
-  (declare (type string name))
-  (declare (type integer size))
-  (declare (type buffer-usage usage))
   (let* ((ubo (gl:gen-buffer))
          (binding-point (- (incf *binding-point-gen*) 1)))
     (gl:bind-buffer :uniform-buffer ubo)

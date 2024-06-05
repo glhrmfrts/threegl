@@ -54,8 +54,8 @@
   (write-gl-value (object-data-color x) buf))
 
 (defun init-render-state ()
-  (setf *view-ubo* (create-uniform-buffer "viewData" (* 64 4) :dynamic-draw))
-  (setf *object-ubo* (create-uniform-buffer "objectData" (* 16 1) :dynamic-draw)))
+  (setf *view-ubo* (create-uniform-buffer "viewData" (* 64 4) :dynamic))
+  (setf *object-ubo* (create-uniform-buffer "objectData" (* 16 1) :dynamic)))
 
 (defun upload-view-data ()
   (let ((buf (flexi:with-output-to-sequence (output :element-type '(unsigned-byte 8))

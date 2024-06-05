@@ -30,10 +30,10 @@
 
 (defun load-font (filename)
   (let* ((fnt (read-font-atlas filename))
-           (tex (create-texture-2d
-                  (font-atlas-pixels fnt)
-                  :width (font-atlas-tex-width fnt)
-                  :height (font-atlas-tex-height fnt)
-                  :pformat :rgba8)))
-      (make-font :fnt fnt :tex tex)))
+         (tex (create-texture-2d
+               (font-atlas-pixels fnt)
+               :width (font-atlas-tex-width fnt)
+               :height (font-atlas-tex-height fnt)
+               :pformat :rgba8)))
+    (make-font :fnt fnt :tex tex)))
 
