@@ -1,0 +1,53 @@
+(in-package #:threegl)
+
+(defun vector->vec4 (v)
+  (vec (elt v 0) (elt v 1) (elt v 2) (elt v 3)))
+
+(defun material-from-gltf (gmat)
+  (let ((color (gltf:albedo-factor (gltf:pbr gmat))))
+    (make-material :color (vector->vec4 color)
+                   :shader (basic-vertex-color-shader))))
+
+(defun create-mesh-from-gltf (gmesh)
+  (labels
+      ((attribute-name->kind (name)
+         (ecase name
+           (:POSITION +vertex-attribute-position+)
+           (:NORMAL +vertex-attribute-normal+)
+           (:COLOR +vertex-attribute-color+)
+           (:TEXCOORD_0 +vertex-attribute-texcoord0+)
+           (:TEXCOORD_1 +vertex-attribute-texcoord1+)
+           (:INDICES 0)))
+       (collect-accessor-items (att)
+         (loop :for i :from 0 :below (length att)
+               :collect (if (vectorp (elt att i)) (copy-seq (elt att i)) (elt att i))))
+       (get-accessor-items (att)
+         (let ((its (coerce (collect-accessor-items att) 'vector)))
+           (describe its)
+           its))
+       (map-attribute (k att)
+         (make-attribute-with-items
+          (get-accessor-items att)
+          :target (if (eq k :INDICES) :element-array-buffer :array-buffer)
+          :kind (attribute-name->kind k)
+          :component-type (gltf:component-type att)
+          :component-count (element-type->component-count (gltf:element-type att))
+          :element-type (gltf:element-type att)))
+       (map-attributes (prim)
+         (loop
+           :for k :being :each :hash-key :of (gltf:attributes prim)
+           :using (hash-value v)
+           :collect (map-attribute k v))))
+    (let* ((prim (elt (gltf:primitives gmesh) 0))
+           (attrs (map-attributes prim))
+           (idxs (map-attribute :INDICES (gltf:indices prim)))
+           (geo (create-geometry (gltf:mode prim) attrs :static)))
+      (geometry-set-indices geo idxs)
+      (upload-geometry geo)
+      (make-mesh :geometry geo :material (material-from-gltf (gltf:material prim))))))
+
+(defun load-gltf (filename)
+  (gltf:with-gltf (gltf filename)
+    (loop
+      :for mesh :across (gltf:meshes gltf)
+      :collect (create-mesh-from-gltf mesh))))

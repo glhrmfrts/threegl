@@ -28,11 +28,11 @@
   (gl:attach-shader program vert-shader)
   (gl:attach-shader program frag-shader)
 
-  (gl:bind-attrib-location program +vertex-attrib-position+ "position")
-  (gl:bind-attrib-location program +vertex-attrib-normal+ "normal")
-  (gl:bind-attrib-location program +vertex-attrib-color+ "color")
-  (gl:bind-attrib-location program +vertex-attrib-texcoord+ "texcoord")
-  (gl:bind-attrib-location program +vertex-attrib-lmtexcoord+ "lmtexcoord")
+  (gl:bind-attrib-location program +vertex-attribute-position+ "position")
+  (gl:bind-attrib-location program +vertex-attribute-normal+ "normal")
+  (gl:bind-attrib-location program +vertex-attribute-color+ "color")
+  (gl:bind-attrib-location program +vertex-attribute-texcoord0+ "texcoord")
+  (gl:bind-attrib-location program +vertex-attribute-texcoord1+ "texcoord1")
 
   (gl:link-program program)
 
@@ -61,7 +61,7 @@
          do (let* ((block-index (gl:get-uniform-block-index program (uniform-buffer-name ubo)))
                   (block-size (gl:get-active-uniform-block program block-index :uniform-block-data-size)))
             (when (/= block-size (uniform-buffer-size ubo))
-              (log-warn "WARNING: OpenGL driver disagrees with us about UBO size of ~a" (uniform-buffer-name ubo)))
+              (format t "WARNING: OpenGL driver disagrees with us about UBO size of ~a" (uniform-buffer-name ubo)))
             (%gl:uniform-block-binding program block-index (uniform-buffer-binding-point ubo))))
 
         ;; Bind all texture units samplers
@@ -82,3 +82,54 @@
                       while line
                       collect line))
                   filename)))
+
+(defparameter *basic-vertex-color-shader* nil)
+
+(defparameter +basic-vertex-color-source+
+  "
+layout (std140) uniform viewData {
+        mat4 proj;
+        mat4 view;
+        mat4 projview;
+        mat4 invprojview;
+};
+
+layout (std140) uniform objectData {
+        mat4 transform;
+        vec4 ucolor;
+};
+
+#ifdef VERTEX_SHADER
+
+in vec3  position;
+in vec4  color;
+
+smooth out vec4 passColor;
+
+void main() {
+    gl_Position = projview * transform * vec4(position, 1.0);
+    passColor = color;
+}
+
+#else
+
+smooth in vec4 passColor;
+
+out vec4 outColor;
+
+void main() {
+	//outColor = passColor * ucolor;
+outColor = vec4(1.0);
+}
+
+#endif
+")
+
+(defun basic-vertex-color-shader ()
+  (unless *basic-vertex-color-shader*
+    (setf *basic-vertex-color-shader* (create-shader +basic-vertex-color-source+ "basic-vertex-color-shader")))
+  *basic-vertex-color-shader*)
+
+(defun destroy-static-shaders ()
+  ;;(destroy-shader *basic-vertex-color-shader*)
+  (setf *basic-vertex-color-shader* nil))

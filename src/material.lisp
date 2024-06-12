@@ -12,7 +12,7 @@
 
 (defstruct material
   (mode :opaque :type render-mode)
-  (color 0 :type vec4)
+  (color (vec 0 0 0 0) :type vec4)
   (shader nil :type shader)
   (texture nil :type texture))
 

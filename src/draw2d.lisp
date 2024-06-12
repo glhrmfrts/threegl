@@ -13,21 +13,33 @@
 
 (defparameter *color2d-geo* nil)
 (defparameter *color2d-shader* nil)
-
+ 
 (defun init-draw2d (&key (texture-shader-path nil)
-                         (color-shader-path nil)
+                         (color-shader-path nil) 
                          (default-font-path nil))
   (let ((attrs (list
-                  (make-position2d-vertex-attribute)
-                  (make-texcoord-vertex-attribute))))
-    (setf *tex2d-geo* (create-geometry-buffer attrs nil :dynamic-draw))
+                (make-attribute :kind +vertex-attribute-position+
+                                :component-type :float
+                                :component-count 2
+                                :usage :dynamic-draw)
+                (make-attribute :kind +vertex-attribute-texcoord0+
+                                :component-type :float
+                                :component-count 2
+                                :usage :dynamic-draw))))
+    (setf *tex2d-geo* (create-geometry :triangles attrs :dynamic-draw))
     (setf *tex2d-shader* (load-shader texture-shader-path))
     (setf *fnt* (load-font default-font-path)))
 
   (let ((attrs (list
-                  (make-position2d-vertex-attribute)
-                  (make-color-vertex-attribute))))
-    (setf *color2d-geo* (create-geometry-buffer attrs nil :dynamic-draw))
+                (make-attribute :kind +vertex-attribute-position+
+                                :component-type :float
+                                :component-count 2
+                                :usage :dynamic-draw)
+                (make-attribute :kind +vertex-attribute-color+
+                                :component-type :float
+                                :component-count 4
+                                :usage :dynamic-draw))))
+    (setf *color2d-geo* (create-geometry :triangles attrs :dynamic-draw))
     (setf *color2d-shader* (load-shader color-shader-path))))
 
 (defun begin-draw2d ()
@@ -36,28 +48,51 @@
 
 (defun draw-rect (rec color)
   (let ((verts (list
-                  (vx2 (rect-mins rec)) (vy2 (rect-maxs rec)) 1.0 1.0 1.0 1.0
-                  (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) 1.0 1.0 1.0 1.0
-                  (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) 1.0 1.0 1.0 1.0
-                  (vx2 (rect-maxs rec)) (vy2 (rect-mins rec)) 1.0 1.0 1.0 1.0)))
+                  (vx2 (rect-mins rec)) (vy2 (rect-maxs rec)) 
+                  (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
+                  (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec))
+                  (vx2 (rect-maxs rec)) (vy2 (rect-mins rec))))
+        (colors (list
+                 1.0 1.0 1.0 1.0
+                 1.0 1.0 1.0 1.0
+                 1.0 1.0 1.0 1.0
+                 1.0 1.0 1.0 1.0)))
+    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-position+)
+                         :scalar
+                         (coerce verts 'vector))
+    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-color+)
+                         :scalar
+                         (coerce colors 'vector))
     (set-shader *color2d-shader*) 
     (set-color color)
-    (upload-geometry *color2d-geo* :vertices (create-gl-array :float (coerce verts 'vector)))
+    (upload-geometry *color2d-geo*)
     (draw-arrays *color2d-geo* :triangle-strip 0 4)))
 
 (defun draw-line-loop (positions color)
   (let ((verts (alexandria:flatten (mapcar
-                                    (lambda (p) (list (vx2 p) (vy2 p) 1.0 1.0 1.0 1.0))
-                                    positions))))
+                                    (lambda (p) (list (vx2 p) (vy2 p)))
+                                    positions)))
+        (colors (alexandria:flatten (mapcar
+                                     (lambda (p) (list 1.0 1.0 1.0 1.0))
+                                     positions))))
+    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-position+)
+                         :scalar
+                         (coerce verts 'vector))
+    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-color+)
+                         :scalar
+                         (coerce colors 'vector))
     (set-shader *color2d-shader*)
     (set-color color)
-    (upload-geometry *color2d-geo* :vertices (create-gl-array :float (coerce verts 'vector)))
+    (upload-geometry *color2d-geo*)
     (draw-arrays *color2d-geo* :line-loop 0 (length positions))))
  
 (defun reset-batch (tex)
   (setf *current-tex* tex)
   (setf *batch-nverts* 0)
-  (setf *batch-verts* (make-array (* *batch-maxverts* +tex2d-vertex-size+)
+  (setf *batch-verts* (make-array (* *batch-maxverts* 2)
+                                  :element-type :float
+                                  :fill-pointer 0))
+  (setf *batch-texcoords* (make-array (* *batch-maxverts* 2)
                                   :element-type :float
                                   :fill-pointer 0)))
 
@@ -67,8 +102,13 @@
     (set-shader *tex2d-shader*)
     (set-color (vec 1 1 1 1))
     (bind-texture *current-tex* :texture0)
-    (upload-geometry *tex2d-geo*
-                     :vertices (create-gl-array :float (coerce *batch-verts* 'vector)))
+    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-position+)
+                         :scalar
+                         (coerce *batch-verts* 'vector))
+    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-texcoord0+)
+                         :scalar
+                         (coerce *batch-texcoords* 'vector))
+    (upload-geometry *tex2d-geo*)
     (draw-arrays *tex2d-geo* :triangles 0 *batch-nverts*)
     (setf *batch-nverts* 0)
     (setf *current-tex* nil)))
@@ -77,7 +117,8 @@
   (declare (type rect rec tex-rect))
   (labels
       ((add-vertex (px py tx ty)
-         (loop for el in (list px py tx ty) do (vector-push el *batch-verts*))
+         (loop for el in (list px py) do (vector-push el *batch-verts*))
+         (loop for el in (list tx ty) do (vector-push el *batch-texcoords*))
          (incf *batch-nverts*)))
     
     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
@@ -119,14 +160,16 @@
   (let* ((cur-x (vx2 pos))
          (cur-y (vy2 pos)) 
          (nverts (* (length text) +vertex-per-char+))         
-         (verts (make-array (* nverts +tex2d-vertex-size+) :element-type :float :fill-pointer 0)))
+         (verts (make-array (* nverts 2) :element-type :float :fill-pointer 0))
+         (texcoords (make-array (* nverts 2) :element-type :float :fill-pointer 0)))
  
     (labels 
       ((find-glyph-data (c) 
         (aref (font-atlas-glyph-data (font-fnt *fnt*)) (char-code c)))
 
       (add-vertex (px py tx ty)
-        (loop for el in (list px py tx ty) do (vector-push el verts)))
+        (loop for el in (list px py) do (vector-push el verts))
+        (loop for el in (list tx ty) do (vector-push el texcoords)))
 
       (compute-glyph-y (gd)
         (+ (font-glyph-data-adv-y gd) (- cur-y (font-glyph-data-char-height gd))))
@@ -163,7 +206,13 @@
     (set-shader *tex2d-shader*)
     (set-color color)
     (bind-texture (font-tex *fnt*) :texture0)
-    (upload-geometry *tex2d-geo* :vertices (create-gl-array :float verts))
+    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-position+)
+                         :scalar
+                         (coerce verts 'vector))
+    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-texcoord0+)
+                         :scalar
+                         (coerce texcoords 'vector))
+    (upload-geometry *tex2d-geo*)
     (draw-arrays *tex2d-geo* :triangles 0 nverts)))
 
 (defun end-draw2d ()

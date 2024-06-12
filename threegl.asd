@@ -13,13 +13,15 @@
   :description "Graphics library"
   :serial T
   :pathname "src"
-  :components ((:file "package")             
+  :components ((:file "package")
                (:file "common")
                (:file "draw2d")
                (:file "font")
-               (:file "geometry-buffer")
+               (:file "attribute")
+               (:file "geometry")
                (:file "material")
-               (:file "model-mesh")
+               (:file "mesh")
+               (:file "gltf")
                (:file "shader")
                (:file "render-state")
                (:file "texture")
@@ -32,4 +34,5 @@
                "cl-opengl"
                "cl-json"
                "cl-bmp"
+               "cl-gltf"
                "png-read"))

@@ -86,7 +86,7 @@
   (gethash key *textures*))
 
 (defun load-texture-resolved-bmp (key filename)
-  (let* ((bmp (org.shirakumo.bmp:read-bmp (pathname filename))))
+  (let* ((bmp (org.shirakumo.bmp:read-bmp filename)))
     (multiple-value-bind (data width height channels) (org.shirakumo.bmp:decode-pixels bmp)
       (let ((tex (create-texture-2d
                   (if (= channels 3) (to-rgba data) data)
@@ -108,7 +108,7 @@
                             (setf (aref rgba (+ 2 dst-index)) (aref data x y 2))
                             (setf (aref rgba (+ 3 dst-index)) (aref data x y 3)))))
            rgba)))
-    (let* ((png (png-read:read-png-file (pathname filename)))
+    (let* ((png (png-read:read-png-file filename))
            (w (png-read:width png))
            (h (png-read:height png))
            (imgdata (if (string-equal (png-read:colour-type png) :truecolor)
@@ -123,12 +123,12 @@
 
 (defun load-texture-resolved (key filename)
   (cond
-    ((alexandria:ends-with-subseq "bmp" filename)
+    ((alexandria:ends-with-subseq "bmp" (namestring filename))
      (load-texture-resolved-bmp key filename))
-    ((alexandria:ends-with-subseq "png" filename)
+    ((alexandria:ends-with-subseq "png" (namestring filename))
      (load-texture-resolved-png key filename))
     (t
      (error "bad texture file extension"))))
 
 (defun load-texture (filename)
-  (load-texture-resolved filename filename))
+  (load-texture-resolved (namestring filename) filename))
