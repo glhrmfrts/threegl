@@ -31,7 +31,7 @@
   (gl:bind-attrib-location program +vertex-attribute-position+ "position")
   (gl:bind-attrib-location program +vertex-attribute-normal+ "normal")
   (gl:bind-attrib-location program +vertex-attribute-color+ "color")
-  (gl:bind-attrib-location program +vertex-attribute-texcoord0+ "texcoord")
+  (gl:bind-attrib-location program +vertex-attribute-texcoord0+ "texcoord0")
   (gl:bind-attrib-location program +vertex-attribute-texcoord1+ "texcoord1")
 
   (gl:link-program program)
@@ -84,6 +84,7 @@
                   filename)))
 
 (defparameter *basic-vertex-color-shader* nil)
+(defparameter *basic-texture-shader* nil)
 
 (defparameter +basic-vertex-color-source+
   "
@@ -118,8 +119,47 @@ smooth in vec4 passColor;
 out vec4 outColor;
 
 void main() {
-	//outColor = passColor * ucolor;
-outColor = vec4(1.0);
+	outColor = ucolor;
+}
+
+#endif
+")
+(defparameter +basic-texture-source+
+    "
+layout (std140) uniform viewData {
+        mat4 proj;
+        mat4 view;
+        mat4 projview;
+        mat4 invprojview;
+};
+
+layout (std140) uniform objectData {
+        mat4 transform;
+        vec4 ucolor;
+};
+
+#ifdef VERTEX_SHADER
+
+in vec3  position;
+in vec2  texcoord0;
+
+smooth out vec2 passTexCoord;
+
+void main() {
+    gl_Position = projview * transform * vec4(position, 1.0);
+    passTexCoord = texcoord0;
+}
+
+#else
+
+uniform sampler2D tex0;
+
+smooth in vec2 passTexCoord;
+
+out vec4 outColor;
+
+void main() {
+	outColor = texture(tex0, passTexCoord) * ucolor;
 }
 
 #endif
@@ -129,6 +169,11 @@ outColor = vec4(1.0);
   (unless *basic-vertex-color-shader*
     (setf *basic-vertex-color-shader* (create-shader +basic-vertex-color-source+ "basic-vertex-color-shader")))
   *basic-vertex-color-shader*)
+
+(defun basic-texture-shader ()
+  (unless *basic-texture-shader*
+    (setf *basic-texture-shader* (create-shader +basic-texture-source+ "basic-texture-shader")))
+  *basic-texture-shader*)
 
 (defun destroy-static-shaders ()
   ;;(destroy-shader *basic-vertex-color-shader*)

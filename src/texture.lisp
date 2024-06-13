@@ -68,7 +68,7 @@
 (defun to-rgba (data)
   (let* ((clen (/ (length data) 3))
          (rgba (make-array (* clen 4) :element-type '(unsigned-byte 8))))
-    (loop for i from 0 below clen do
+    (loop :for i :from 0 :below clen :do
       (let ((src-index (* i 3))
             (dst-index (* i 4)))
         (setf (aref rgba dst-index) (aref data src-index))
@@ -98,23 +98,25 @@
 
 (defun load-texture-resolved-png (key filename)
   (labels
-      ((flatten-image-data (data w h)
+      ((flatten-image-data (coltype data w h)
          (let ((rgba (make-array (* w h 4) :element-type '(unsigned-byte 8))))
-           (loop for y from 0 below h
-                 do (loop for x from 0 below w
-                          do (let ((dst-index (* 4 (+ x (* w y)))))
-                            (setf (aref rgba dst-index) (aref data x y 0))
-                            (setf (aref rgba (+ 1 dst-index)) (aref data x y 1))
-                            (setf (aref rgba (+ 2 dst-index)) (aref data x y 2))
-                            (setf (aref rgba (+ 3 dst-index)) (aref data x y 3)))))
+           (loop :for y :from 0 :below h
+                 :do (loop :for x :from 0 :below w
+                           do (let ((dst-index (* 4 (+ x (* w y)))))
+				(setf (aref rgba dst-index) (aref data x y 0))
+				(setf (aref rgba (+ 1 dst-index)) (aref data x y 1))
+				(setf (aref rgba (+ 2 dst-index)) (aref data x y 2))
+				(if (string-equal coltype :truecolor)
+				    (setf (aref rgba (+ 3 dst-index)) 255)
+				    (setf (aref rgba (+ 3 dst-index)) (aref data x y 3))))))
            rgba)))
     (let* ((png (png-read:read-png-file filename))
            (w (png-read:width png))
            (h (png-read:height png))
-           (imgdata (if (string-equal (png-read:colour-type png) :truecolor)
-                        (to-rgba (png-read:image-data png))
-                        (png-read:image-data png)))
-           (tex (create-texture-2d (flatten-image-data imgdata w h)
+           (tex (create-texture-2d (flatten-image-data
+				    (png-read:colour-type png)
+				    (png-read:image-data png)
+				    w h)
                                    :width w
                                    :height h
                                    :pformat (components-to-format 4))))

@@ -38,6 +38,25 @@
 
    :load-shader
    :basic-vertex-color-shader
+   :basic-texture-shader
+
+   :create-basic-vertex-color-material
+   :create-basic-texture-material
+   :load-material
+
+   :make-mesh
+   :render-mesh
+
+   :node
+   :translation
+   :scale
+   :children
+   :model
+   :camera
+   :scene
+   :traverse
+   :render-model
+   :render-scene
 
    :load-gltf
 

@@ -12,9 +12,17 @@
 
 (defstruct material
   (mode :opaque :type render-mode)
-  (color (vec 0 0 0 0) :type vec4)
-  (shader nil :type shader)
-  (texture nil :type texture))
+  (color (vec 1 1 1 1) :type vec4)
+  (shader nil)
+  (texture nil))
+
+(defun create-basic-vertex-color-material (&rest other-keys)
+  (let ((args (append other-keys (list :shader (threegl:basic-vertex-color-shader)))))
+    (apply #'make-material args)))
+
+(defun create-basic-texture-material (&rest other-keys)
+  (let ((args (append other-keys (list :shader (threegl:basic-texture-shader)))))
+    (apply #'make-material args)))
 
 (defun load-material (filename)
   (with-open-file (file filename :direction :input)

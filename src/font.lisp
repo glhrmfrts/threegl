@@ -36,4 +36,3 @@
                   :height (font-atlas-tex-height fnt)
                   :pformat :rgba8)))
       (make-font :fnt fnt :tex tex)))
-

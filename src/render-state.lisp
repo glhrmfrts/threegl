@@ -98,12 +98,15 @@
   (setf *object-dirty* t))
 
 (defun set-color (c)
+  ;;(format t "~a ~a ~a ~a~%" (vx4 c) (vy4 c) (vz4 c) (vw4 c))
   (setf (object-data-color *object-data*) c)
   (setf *object-dirty* t))
 
 (defun set-material (mat)
   (set-shader (material-shader mat))
-  (set-color (material-color mat)))
+  (set-color (material-color mat))
+  (when (material-texture mat)
+    (bind-texture (material-texture mat) :texture0)))
 
 (defun sync-ubos ()
   (when *view-dirty*

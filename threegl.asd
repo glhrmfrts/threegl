@@ -19,12 +19,13 @@
                (:file "font")
                (:file "attribute")
                (:file "geometry")
+               (:file "texture")
+               (:file "shader")
                (:file "material")
                (:file "mesh")
+	       (:file "scene")
                (:file "gltf")
-               (:file "shader")
                (:file "render-state")
-               (:file "texture")
                (:file "uniform-buffer"))
   :depends-on ("3d-vectors"
                "3d-matrices"

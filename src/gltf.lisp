@@ -1,14 +1,30 @@
 (in-package #:threegl)
 
+(defclass gltf-scene (object) ())
+
+(defun vector->vec3 (v)
+  (vec (elt v 0) (elt v 1) (elt v 2)))
+
 (defun vector->vec4 (v)
   (vec (elt v 0) (elt v 1) (elt v 2) (elt v 3)))
 
-(defun material-from-gltf (gmat)
-  (let ((color (gltf:albedo-factor (gltf:pbr gmat))))
-    (make-material :color (vector->vec4 color)
-                   :shader (basic-vertex-color-shader))))
+(defun material-from-gltf (gmat rtextures)
+  (let ((color (gltf:albedo-factor (gltf:pbr gmat)))
+	(tex-info (gltf:albedo (gltf:pbr gmat))))
+    (if tex-info
+	(create-basic-texture-material
+	 :color (vector->vec4 color)
+	 :texture (nth (gltf:idx (gltf:source (gltf:texture tex-info))) rtextures))
+	(create-basic-vertex-color-material
+	 :color (vector->vec4 color)))))
 
-(defun create-mesh-from-gltf (gmesh)
+(defun load-texture-from-gltf (model-filename gtex)
+  (load-texture
+   (merge-pathnames
+    (gltf:uri (gltf:source gtex))
+    (make-pathname :directory (pathname-directory model-filename)))))
+
+(defun create-mesh-from-gltf (gmesh rtextures)
   (labels
       ((attribute-name->kind (name)
          (ecase name
@@ -23,7 +39,6 @@
                :collect (if (vectorp (elt att i)) (copy-seq (elt att i)) (elt att i))))
        (get-accessor-items (att)
          (let ((its (coerce (collect-accessor-items att) 'vector)))
-           (describe its)
            its))
        (map-attribute (k att)
          (make-attribute-with-items
@@ -44,10 +59,43 @@
            (geo (create-geometry (gltf:mode prim) attrs :static)))
       (geometry-set-indices geo idxs)
       (upload-geometry geo)
-      (make-mesh :geometry geo :material (material-from-gltf (gltf:material prim))))))
+      (make-mesh :geometry geo
+		 :material (material-from-gltf (gltf:material prim) rtextures)))))
+
+(defun create-object-from-gltf (gnode rmeshes)
+  (let ((children (loop
+		    :for c :across (gltf:children gnode)
+		    :collect (create-object-from-gltf c rmeshes)))
+	(translation (if (vectorp (gltf:translation gnode))
+			 (vector->vec3 (gltf:translation gnode))
+			 (vec 0 0 0)))
+	(scale (if (vectorp (gltf:scale gnode))
+		   (vector->vec3 (gltf:scale gnode))
+		   (vec 1 1 1))))
+    (if (gltf:mesh gnode)
+	(make-instance 'model
+		       :mesh (nth (gltf:idx (gltf:mesh gnode)) rmeshes)
+		       :name (gltf:name gnode)
+		       :translation translation
+		       :scale scale
+		       :children children)
+	(make-instance 'object
+		       :name (gltf:name gnode)
+		       :translation translation
+		       :scale scale
+		       :children children))))
 
 (defun load-gltf (filename)
   (gltf:with-gltf (gltf filename)
-    (loop
-      :for mesh :across (gltf:meshes gltf)
-      :collect (create-mesh-from-gltf mesh))))
+    (describe gltf)
+    (let* ((rtextures (loop
+			:for tex :across (gltf:textures gltf)
+			:collect (load-texture-from-gltf filename tex)))
+	   (rmeshes (loop
+		      :for mesh :across (gltf:meshes gltf)
+		      :collect (create-mesh-from-gltf mesh rtextures)))
+	   (robjs (loop
+		     :for node :across (gltf:nodes (elt (gltf:scenes gltf) 0))
+		     :collect (create-object-from-gltf node rmeshes))))
+      ;;(dolist (rnode rnodes) (describe rnode))
+      (make-instance 'gltf-scene :name filename :children robjs))))
