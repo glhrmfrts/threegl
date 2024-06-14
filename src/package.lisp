@@ -30,6 +30,7 @@
    :rect-mins
    :rect-maxs
    :rect-collides-p
+   :point-in-rect-p
 
    :load-texture
    :find-texture
@@ -65,6 +66,7 @@
    :draw-texture-rect
    :draw-rect
    :draw-line-loop
+   :measure-text
    :draw-text
    :flush-draw2d
    :end-draw2d))

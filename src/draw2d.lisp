@@ -150,7 +150,37 @@
      (reset-batch tex)
      (add-to-batch rec tex-rec))))
 
-(defun draw-text (text pos color)
+(defun measure-text (text &key (out-size nil))
+  (let ((cur-x 0)
+        (cur-y 0)
+	(max-x 0))
+
+    (labels
+      ((find-glyph-data (c)
+        (aref (font-atlas-glyph-data (font-fnt *fnt*)) (char-code c)))
+
+      (generate-glyph-vertices (c)
+        (let ((gd (find-glyph-data c)))
+          (incf cur-x (font-glyph-data-bearing-x gd))
+          (if (equal c (char " " 0))
+            (incf cur-x (font-glyph-data-adv-x gd))
+	    (progn
+              (incf cur-x (font-glyph-data-char-width gd))
+	      (setq max-x (max max-x cur-x)))))))
+
+      (with-input-from-string (input text)
+        (loop :for line = (read-line input nil nil)
+              :while line :do
+          (setq cur-x 0)
+          (loop :for c :across line do
+            (generate-glyph-vertices c))
+          (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*)))))
+
+      (when out-size
+	(setf (vx2 out-size) max-x)
+	(setf (vy2 out-size) cur-y)))))
+
+(defun draw-text (text pos color &key (out-size nil))
   (declare (type string text))
   (declare (type vec2 pos))
   (declare (type vec4 color))
@@ -159,6 +189,7 @@
 
   (let* ((cur-x (vx2 pos))
          (cur-y (vy2 pos))
+	 (max-x cur-x)
          (nverts (* (length text) +vertex-per-char+))
          (verts (make-array (* nverts 2) :element-type :float :fill-pointer 0))
          (texcoords (make-array (* nverts 2) :element-type :float :fill-pointer 0)))
@@ -193,13 +224,14 @@
               (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
               (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-maxs rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-maxs tex-rec)))
 
-              (incf cur-x (font-glyph-data-char-width gd)))))))
+              (incf cur-x (font-glyph-data-char-width gd))
+	      (setq max-x (max max-x cur-x)))))))
 
       (with-input-from-string (input text)
         (loop :for line = (read-line input nil nil)
               :while line :do
           (setq cur-x (vx2 pos))
-          (loop for c across line do
+          (loop :for c :across line do
             (generate-glyph-vertices c))
           (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*))))))
 
@@ -213,7 +245,11 @@
                          :scalar
                          (coerce texcoords 'vector))
     (upload-geometry *tex2d-geo*)
-    (draw-arrays *tex2d-geo* :triangles 0 nverts)))
+    (draw-arrays *tex2d-geo* :triangles 0 nverts)
+
+    (when out-size
+      (setf (vx2 out-size) (- max-x (vx2 pos)))
+      (setf (vy2 out-size) (- cur-y (vy2 pos))))))
 
 (defun end-draw2d ()
   (gl:disable :blend))

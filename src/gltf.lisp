@@ -87,7 +87,6 @@
 
 (defun load-gltf (filename)
   (gltf:with-gltf (gltf filename)
-    (describe gltf)
     (let* ((rtextures (loop
 			:for tex :across (gltf:textures gltf)
 			:collect (load-texture-from-gltf filename tex)))

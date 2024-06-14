@@ -78,9 +78,9 @@
 (defun load-shader (filename)
   (with-open-file (file filename :direction :input :if-does-not-exist :error)
     (create-shader (format nil "~{~a~%~}"
-                    (loop for line = (read-line file nil nil)
-                      while line
-                      collect line))
+                    (loop :for line = (read-line file nil nil)
+                      :while line
+                      :collect line))
                   filename)))
 
 (defparameter *basic-vertex-color-shader* nil)
