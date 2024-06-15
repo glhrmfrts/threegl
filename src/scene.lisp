@@ -17,6 +17,8 @@
 
 (defclass scene (object) ())
 
+(defgeneric render-object (object) ())
+
 (defun update-world-transform (obj)
   (let ((m (3d-matrices:m*
 	    (3d-matrices:mtranslation (translation obj))
@@ -34,13 +36,9 @@
   (dolist (child (children obj))
     (traverse child f)))
 
-(defun render-model (m)
+(defmethod render-object ((m model))
   (set-transform (world-transform m))
   (render-mesh (model-mesh m)))
 
 (defun render-scene (s)
-  (traverse
-   s
-   (lambda (child)
-     (when (eq (class-of child) (find-class 'model))
-       (render-model child)))))
+  (traverse s (lambda (child) (render-object child))))
