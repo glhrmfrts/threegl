@@ -21,10 +21,12 @@
                (:file "geometry")
                (:file "texture")
                (:file "shader")
+	       (:file "framebuffer")
                (:file "material")
                (:file "mesh")
 	       (:file "scene")
                (:file "gltf")
+	       (:file "postfx")
                (:file "render-state")
                (:file "uniform-buffer"))
   :depends-on ("3d-vectors"

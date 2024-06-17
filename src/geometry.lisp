@@ -176,3 +176,34 @@
            (geo (create-geometry :triangles (list vert-attr color-attr) :static)))
       (upload-geometry geo)
       geo)))
+
+(defun generate-screen-data ()
+  (let ((vertices '(-1.0 -1.0 0.0
+		    1.0 -1.0 0.0
+		    1.0 1.0 0.0
+		    -1.0 -1.0 0.0
+		    1.0 1.0 0.0
+		    -1.0 1.0 0.0))
+	(tex-coords '(0.0 0.0
+		      1.0 0.0
+		      1.0 1.0
+		      0.0 0.0
+		      1.0 1.0
+		      0.0 1.0)))
+    (values vertices tex-coords)))
+
+(defun create-screen-geometry ()
+  (multiple-value-bind (vertices tex-coords) (generate-screen-data)
+    (let* ((vert-attr (make-attribute-with-items (coerce vertices 'vector)
+						:kind +vertex-attribute-position+
+						:element-type :scalar
+						:component-type :float
+						:component-count 3))
+	   (texcoords-attr (make-attribute-with-items (coerce tex-coords 'vector)
+						     :kind +vertex-attribute-texcoord0+
+						     :element-type :scalar
+						     :component-type :float
+						     :component-count 2))
+	   (geo (create-geometry :triangles (list vert-attr texcoords-attr) :static)))
+      (upload-geometry geo)
+      geo)))

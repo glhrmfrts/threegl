@@ -28,6 +28,9 @@
 (defparameter *current-material* nil)
 (defparameter *current-shader* nil)
 
+(defparameter *view-width* 1280)
+(defparameter *view-height* 720)
+
 (defgeneric write-gl-value (x buf))
 
 (defmethod write-gl-value ((x float) buf)
@@ -60,7 +63,8 @@
 
 (defun init-render-state ()
   (setf *view-ubo* (create-uniform-buffer "viewData" (* 64 4) :dynamic-draw))
-  (setf *object-ubo* (create-uniform-buffer "objectData" (* 20 4) :dynamic-draw)))
+  (setf *object-ubo* (create-uniform-buffer "objectData" (* 20 4) :dynamic-draw))
+  (init-postfx))
 
 (defun destroy-render-state ()
   (destroy-static-shaders))

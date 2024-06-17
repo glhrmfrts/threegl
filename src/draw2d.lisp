@@ -199,8 +199,8 @@
         (aref (font-atlas-glyph-data (font-fnt *fnt*)) (char-code c)))
 
       (add-vertex (px py tx ty)
-        (loop for el in (list px py) do (vector-push el verts))
-        (loop for el in (list tx ty) do (vector-push el texcoords)))
+        (loop :for el :in (list px py) :do (vector-push el verts))
+        (loop :for el :in (list tx ty) :do (vector-push el texcoords)))
 
       (compute-glyph-y (gd)
         (+ (font-glyph-data-adv-y gd) (- cur-y (font-glyph-data-char-height gd))))

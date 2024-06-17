@@ -17,7 +17,8 @@
 
 (defclass scene (object) ())
 
-(defgeneric render-object (object) ())
+(defgeneric render-object (object))
+(defmethod render-object ((obj object)) ())
 
 (defun update-world-transform (obj)
   (let ((m (3d-matrices:m*

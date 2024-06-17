@@ -69,6 +69,9 @@
    :measure-text
    :draw-text
    :flush-draw2d
-   :end-draw2d))
+   :end-draw2d
+
+   :begin-postfx
+   :end-postfx))
 
 (in-package #:threegl)
