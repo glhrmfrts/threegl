@@ -83,7 +83,7 @@
   "Set attribute items from a vector"
   (when (attribute-items attr)
     (gl:free-gl-array (attribute-items attr)))
-  (setf (attribute-n-items attr) (length items))
+  (setf (attribute-n-items attr) (* (length items) (element-type->component-count elem-type)))
   (setf (attribute-items attr)
         (create-gl-array (attribute-component-type attr) elem-type items))
   (setf (attribute-needs-update attr) t))

@@ -45,6 +45,10 @@
   (write-gl-value (vz4 x) buf)
   (write-gl-value (vw4 x) buf))
 
+(defmethod write-gl-value ((x vector) buf)
+  (loop :for e :across x :do
+    (write-gl-value e buf)))
+
 (defmethod write-gl-value ((x mat4) buf)
   (write-gl-value (mcol x 0) buf)
   (write-gl-value (mcol x 1) buf)

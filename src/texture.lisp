@@ -102,7 +102,7 @@
          (let ((rgba (make-array (* w h 4) :element-type '(unsigned-byte 8))))
            (loop :for y :from 0 :below h
                  :do (loop :for x :from 0 :below w
-                           do (let ((dst-index (* 4 (+ x (* w y)))))
+                           :do (let ((dst-index (* 4 (+ x (* w y)))))
 				(setf (aref rgba dst-index) (aref data x y 0))
 				(setf (aref rgba (+ 1 dst-index)) (aref data x y 1))
 				(setf (aref rgba (+ 2 dst-index)) (aref data x y 2))

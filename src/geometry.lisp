@@ -14,7 +14,7 @@
   (declare (type usage buffer-usage))
   (let* ((vao (gl:gen-vertex-array)))
     (gl:bind-vertex-array vao)
-    (loop for attr in attrs do (enable-vertex-attribute attr))
+    (loop :for attr :in attrs :do (enable-vertex-attribute attr))
     (make-geometry :vao vao :attrs attrs :usage usage :primitives primitives)))
 
 (defun geometry-set-indices (geo indices)
@@ -26,7 +26,7 @@
   (find-if (lambda (attr) (= (attribute-kind attr) kind)) (geometry-attrs geo)))
 
 (defun upload-geometry (buf)
-  (loop for attr in (geometry-attrs buf) do
+  (loop :for attr :in (geometry-attrs buf) :do
         (upload-attribute attr)
         (when (= (attribute-kind attr) +vertex-attribute-position+)
           (setf (geometry-vertex-draw-count buf)

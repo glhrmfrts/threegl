@@ -26,11 +26,11 @@
                (:file "mesh")
 	       (:file "scene")
                (:file "gltf")
+	       (:file "helpers")
 	       (:file "postfx")
                (:file "render-state")
                (:file "uniform-buffer"))
-  :depends-on ("3d-vectors"
-               "3d-matrices"
+  :depends-on ("3d-math"
                "alexandria"
                "binary-structures"
                "flexi-streams"

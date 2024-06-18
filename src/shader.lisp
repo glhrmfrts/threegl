@@ -57,7 +57,7 @@
         (link-shader-program program vert-shader frag-shader filename)
 
         ;; Bind all uniform blocks
-        (loop for ubo in *ubo-list*
+        (loop :for ubo :in *ubo-list*
          do (let* ((block-index (gl:get-uniform-block-index program (uniform-buffer-name ubo)))
                   (block-size (gl:get-active-uniform-block program block-index :uniform-block-data-size)))
             (when (/= block-size (uniform-buffer-size ubo))
@@ -65,7 +65,7 @@
             (%gl:uniform-block-binding program block-index (uniform-buffer-binding-point ubo))))
 
         ;; Bind all texture units samplers
-        (loop for i from 0 to (- +max-texture-units+ 1)
+        (loop :for i :from 0 :to (- +max-texture-units+ 1)
          do (let* ((sampler-name (format nil "tex~a" i))
                    (sampler-loc (gl:get-uniform-location program sampler-name)))
             (when (/= sampler-loc -1)

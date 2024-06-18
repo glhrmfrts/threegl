@@ -5,7 +5,12 @@
    (:bs #:org.shirakumo.binary-structures)
    (:gltf #:org.shirakumo.fraf.gltf)
    (:flexi #:flexi-streams))
-  (:use #:cl :org.shirakumo.binary-structures.types :3d-matrices :3d-vectors)
+  (:use
+   #:cl
+   #:org.shirakumo.binary-structures.types
+   #:org.shirakumo.fraf.math.matrices
+   #:org.shirakumo.fraf.math.vectors
+   #:org.shirakumo.fraf.math.quaternions)
   (:export
    :init-render-state
    :destroy-render-state
@@ -56,8 +61,17 @@
    :camera
    :scene
    :traverse
+   :link
    :render-model
    :render-scene
+
+   :grid-helper
+
+   :orbit-control-helper
+   :orbit-control-mouse-moved
+   :orbit-control-key-changed
+   :orbit-control-mouse-button-changed
+   :orbit-control-update
 
    :load-gltf
 

@@ -151,9 +151,9 @@
      (add-to-batch rec tex-rec))))
 
 (defun measure-text (text &key (out-size nil))
-  (let ((cur-x 0)
-        (cur-y 0)
-	(max-x 0))
+  (let ((cur-x 0.0)
+        (cur-y 0.0)
+	(max-x 0.0))
 
     (labels
       ((find-glyph-data (c)
@@ -171,7 +171,7 @@
       (with-input-from-string (input text)
         (loop :for line = (read-line input nil nil)
               :while line :do
-          (setq cur-x 0)
+          (setq cur-x 0.0)
           (loop :for c :across line do
             (generate-glyph-vertices c))
           (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*)))))
