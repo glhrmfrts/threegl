@@ -18,7 +18,6 @@
 (defclass camera (object)
   ((projection :initform (meye 4) :accessor camera-projection)
    (view :initform (meye 4) :accessor camera-view)
-   (up-vector :initarg :up-vector :initform (vec 0 1 0) :accessor camera-up-vector)
    (type :initarg :type :initform :perspective :accessor camera-type)
    (fov :initarg :fov :initform 70.0 :accessor camera-fov)
    (near :initarg :near :initform 0.1 :accessor camera-near)
@@ -30,8 +29,6 @@
 		      (/ (float *view-width*) (float *view-height*))
 		      (camera-near cam)
 		      (camera-far cam)))
-  ;;(setf (camera-view cam) (mlookat (world-translation cam) (camera-target cam) (camera-up-vector cam)))
-  ;;(print (world-translation cam))
   (setf (camera-view cam) (minv (world-transform cam)))
   (values (camera-projection cam) (camera-view cam)))
 
