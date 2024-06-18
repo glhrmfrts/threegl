@@ -119,4 +119,6 @@
   ;;(print (translation c))
   ;;(print (world-translation c))
 
+  (add-flag-recur c +object-flag-transform-dirty+)
+
   )

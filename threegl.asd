@@ -26,6 +26,7 @@
                (:file "mesh")
 	       (:file "scene")
                (:file "gltf")
+	       (:file "triangle-mesh-builder")
 	       (:file "helpers")
 	       (:file "postfx")
                (:file "render-state")

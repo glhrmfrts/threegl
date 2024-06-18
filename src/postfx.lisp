@@ -6,18 +6,6 @@
 
 (defparameter +testshader-source+
     "
-layout (std140) uniform viewData {
-        mat4 proj;
-        mat4 view;
-        mat4 projview;
-        mat4 invprojview;
-};
-
-layout (std140) uniform objectData {
-        mat4 transform;
-        vec4 ucolor;
-};
-
 #ifdef VERTEX_SHADER
 
 in vec3  position;

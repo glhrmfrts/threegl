@@ -15,6 +15,8 @@
    :init-render-state
    :destroy-render-state
 
+   :begin-frame
+   :end-frame
    :set-clear-color
    :clear
    :set-projection-view
@@ -46,20 +48,31 @@
    :basic-vertex-color-shader
    :basic-texture-shader
 
+   :make-mesh
+   :render-mesh
+
    :create-basic-vertex-color-material
    :create-basic-texture-material
    :load-material
 
-   :make-mesh
-   :render-mesh
+   :load-gltf
 
-   :node
+   :object
    :translation
+   :world-translation
+   :rotation
+   :world-rotation
+   :transform
+   :world-transform
    :scale
+   :world-front-vector
+   :world-right-vector
+   :world-up-vector
    :children
    :model
    :camera
    :scene
+   :add-child
    :traverse
    :link
    :render-model
@@ -73,7 +86,22 @@
    :orbit-control-mouse-button-changed
    :orbit-control-update
 
-   :load-gltf
+   :triangle-mesh-builder
+   :triangle-mesh-n-elements
+   :triangle-mesh-n-indices
+   :triangle-mesh-indices
+   :triangle-mesh-vertices
+   :triangle-mesh-normals
+   :triangle-mesh-colors
+   :triangle-mesh-uvs
+   :triangle-mesh-begin
+   :triangle-mesh-end
+   :triangle-mesh-add-vertex
+   :triangle-mesh-add-color
+   :triangle-mesh-add-index
+   :triangle-mesh-add-quad-vc
+   :triangle-mesh-add-cube-vc
+   :triangle-mesh->geometry
 
    :init-draw2d
    :begin-draw2d

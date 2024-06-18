@@ -1,5 +1,8 @@
 (in-package #:threegl)
 
+(defconstant +object-flag-static+ 1)
+(defconstant +object-flag-transform-dirty+ 4096)
+
 (defclass object ()
   ((name :initarg :name :initform "" :accessor name)
    (translation :initarg :translation :initform (vec 0 0 0) :accessor translation)
@@ -10,10 +13,25 @@
    (children :initarg :children :initform nil :accessor children)
    (m-transform :initform (meye 4) :accessor m-transform)
    (m-world-transform :initform (meye 4) :accessor m-world-transform)
-   (world-transform-dirty :initform t :accessor world-transform-dirty)))
+   (flags :initarg :flags :initform +object-flag-transform-dirty+ :accessor object-flags)))
+
+(defun has-flag-p (obj flag)
+  (/= 0 (logand (object-flags obj) flag)))
+
+(defun add-flag (obj flag)
+  (setf (object-flags obj) (logior (object-flags obj) flag)))
+
+(defun add-flag-recur (obj flag)
+  (setf (object-flags obj) (logior (object-flags obj) flag))
+  (dolist (child (children obj))
+    (add-flag-recur child flag)))
+
+(defun remove-flag (obj flag)
+  (setf (object-flags obj) (logand (object-flags obj) (lognot flag))))
 
 (defclass model (object)
-  ((mesh :initarg :mesh :initform nil :type mesh :accessor model-mesh)))
+  ((mesh :initarg :mesh :initform nil :type mesh :accessor model-mesh)
+   (material :initarg :material :initform nil :type material :accessor model-material)))
 
 (defclass camera (object)
   ((projection :initform (meye 4) :accessor camera-projection)
@@ -56,9 +74,9 @@
       (values))))
 
 (defun world-transform (obj)
-  (when t
+  (when (has-flag-p obj +object-flag-transform-dirty+)
     (update-world-transform obj)
-    (setf (world-transform-dirty obj) t))
+    (remove-flag obj +object-flag-transform-dirty+))
   (m-world-transform obj))
 
 (defun world-translation (obj)
@@ -79,6 +97,11 @@
 (defun world-up-vector (obj)
   (q* (world-rotation obj) (vec 0.0 1.0 0.0)))
 
+(defun add-child (obj child)
+  (assert (null (parent child)))
+  (setf (parent child) obj)
+  (setf (children obj) (append (children obj) (list child))))
+
 (defun traverse (obj f)
   (funcall f obj)
   (dolist (child (children obj))
@@ -96,7 +119,8 @@
 
 (defmethod render-object ((m model))
   (set-transform (world-transform m))
-  (render-mesh (model-mesh m)))
+  (render-mesh (model-mesh m) (model-material m))
+  )
 
 (defun render-scene (s cam)
   (gl:enable :depth-test)

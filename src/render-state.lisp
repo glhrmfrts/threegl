@@ -6,6 +6,13 @@
 (bs:define-io-structure one-integer
   (x sint32))
 
+(defstruct frame-data
+  (ambient-light (vec 1 1 1 1) :type vec4)
+  (time 0.0 :type single-float)
+  (delta-time 0.0 :type single-float)
+  (pad1 0.0 :type single-float)
+  (pad2 0.0 :type single-float))
+
 (defstruct view-data
   (proj (meye 4) :type mat4)
   (view (meye 4) :type mat4)
@@ -18,10 +25,13 @@
 
 (defparameter *view-data* (make-view-data))
 (defparameter *object-data* (make-object-data))
+(defparameter *frame-data* (make-frame-data))
 
+(defparameter *frame-ubo* nil)
 (defparameter *view-ubo* nil)
 (defparameter *object-ubo* nil)
 
+(defparameter *frame-dirty* t)
 (defparameter *view-dirty* t)
 (defparameter *object-dirty* t)
 
@@ -55,6 +65,13 @@
   (write-gl-value (mcol x 2) buf)
   (write-gl-value (mcol x 3) buf))
 
+(defmethod write-gl-value ((x frame-data) buf)
+  (write-gl-value (frame-data-ambient-light x) buf)
+  (write-gl-value (frame-data-time x) buf)
+  (write-gl-value (frame-data-delta-time x) buf)
+  (write-gl-value (frame-data-pad1 x) buf)
+  (write-gl-value (frame-data-pad2 x) buf))
+
 (defmethod write-gl-value ((x view-data) buf)
   (write-gl-value (view-data-proj x) buf)
   (write-gl-value (view-data-view x) buf)
@@ -66,6 +83,7 @@
   (write-gl-value (object-data-color x) buf))
 
 (defun init-render-state ()
+  (setf *frame-ubo* (create-uniform-buffer "frameData" (* 8 4) :dynamic-draw))
   (setf *view-ubo* (create-uniform-buffer "viewData" (* 64 4) :dynamic-draw))
   (setf *object-ubo* (create-uniform-buffer "objectData" (* 20 4) :dynamic-draw))
   (init-postfx))
@@ -73,16 +91,19 @@
 (defun destroy-render-state ()
   (destroy-static-shaders))
 
+(defun upload-frame-data ()
+  (let ((buf (flexi:with-output-to-sequence (output :element-type '(unsigned-byte 8))
+              (write-gl-value *frame-data* output))))
+    (upload-uniform *view-ubo* (create-gl-array :uchar :scalar buf))))
+
 (defun upload-view-data ()
   (let ((buf (flexi:with-output-to-sequence (output :element-type '(unsigned-byte 8))
               (write-gl-value *view-data* output))))
-      ;(format t "~a~%" buf)
       (upload-uniform *view-ubo* (create-gl-array :uchar :scalar buf))))
 
 (defun upload-object-data ()
   (let ((buf (flexi:with-output-to-sequence (output :element-type '(unsigned-byte 8))
               (write-gl-value *object-data* output))))
-      ;(format t "~a~%" buf)
       (upload-uniform *object-ubo* (create-gl-array :uchar :scalar buf))))
 
 (defun set-clear-color (r g b a)
@@ -117,6 +138,10 @@
     (bind-texture (material-texture mat) :texture0)))
 
 (defun sync-ubos ()
+  (when *frame-dirty*
+    (progn
+      (upload-frame-data)
+      (setf *frame-dirty* nil)))
   (when *view-dirty*
     (progn
       (upload-view-data)
@@ -125,6 +150,14 @@
     (progn
       (upload-object-data)
       (setf *object-dirty* nil))))
+
+(defun begin-frame (dt)
+  (incf (frame-data-time *frame-data*) dt)
+  (setf (frame-data-delta-time *frame-data*) dt)
+  (setf *frame-dirty* t))
+
+(defun end-frame ()
+  ())
 
 (defun draw-arrays (geo prim start count)
   (sync-ubos)

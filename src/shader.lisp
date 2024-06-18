@@ -1,5 +1,27 @@
 (in-package :threegl)
 
+(defparameter +uniforms-block+
+  "
+layout (std140) uniform frameData {
+        vec4 ambientLight;
+        float time;
+        float deltaTime;
+        float _pad1, _pad2;
+};
+
+layout (std140) uniform viewData {
+        mat4 proj;
+        mat4 view;
+        mat4 projview;
+        mat4 invprojview;
+};
+
+layout (std140) uniform objectData {
+        mat4 transform;
+        vec4 ucolor;
+};
+")
+
 (define-condition shader-compilation-error (error)
   ((filename :type string :initform "" :initarg :filename :accessor sce-filename)
    (message :type string :initform "" :initarg :message :accessor sce-message))
@@ -12,7 +34,10 @@
   (program 0))
 
 (defun process-shader-source (header source filename)
-  (let ((string-list (list "#version 330" header source)))
+  (let ((string-list (list "#version 330"
+			   +uniforms-block+
+			   header
+			   source)))
     (format nil "~{~a~%~}" string-list)))
 
 (defun compile-shader (sh source filename)
@@ -88,18 +113,6 @@
 
 (defparameter +basic-vertex-color-source+
   "
-layout (std140) uniform viewData {
-        mat4 proj;
-        mat4 view;
-        mat4 projview;
-        mat4 invprojview;
-};
-
-layout (std140) uniform objectData {
-        mat4 transform;
-        vec4 ucolor;
-};
-
 #ifdef VERTEX_SHADER
 
 in vec3  position;
@@ -126,18 +139,6 @@ void main() {
 ")
 (defparameter +basic-texture-source+
     "
-layout (std140) uniform viewData {
-        mat4 proj;
-        mat4 view;
-        mat4 projview;
-        mat4 invprojview;
-};
-
-layout (std140) uniform objectData {
-        mat4 transform;
-        vec4 ucolor;
-};
-
 #ifdef VERTEX_SHADER
 
 in vec3  position;

@@ -19,6 +19,6 @@
 (defun foreach-mesh (f)
   (maphash f *meshes*))
 
-(defun render-mesh (mesh)
-  (set-material (mesh-material mesh))
+(defun render-mesh (mesh &optional custom-material)
+  (set-material (or custom-material (mesh-material mesh)))
   (draw-geometry (mesh-geometry mesh)))
