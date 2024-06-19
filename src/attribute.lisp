@@ -7,6 +7,7 @@
 (defconstant +vertex-attribute-color+ 2)
 (defconstant +vertex-attribute-texcoord0+ 3)
 (defconstant +vertex-attribute-texcoord1+ 4)
+(defconstant +vertex-attribute-instance-transform+ 5)
 
 (defstruct attribute
   kind
@@ -15,7 +16,7 @@
   element-type
   component-type
   component-count
-  divisor
+  instanced-p
   id
   needs-update
   items
@@ -68,16 +69,18 @@
 (defun bind-attribute (attr)
   (gl:bind-buffer (attribute-target attr) (attribute-id attr)))
 
-(defun setup-attribute (attr data-type n-items)
+(defun setup-attribute (attr elem-type n-items)
   (when (attribute-items attr)
     (gl:free-gl-array (attribute-items attr)))
   (setf (attribute-n-items attr) n-items)
-  (setf (attribute-items attr) (gl:alloc-gl-array data-type n-items))
-  (setf (attribute-needs-update attr) t))
+  (setf (attribute-items attr) (gl:alloc-gl-array (attribute-component-type attr) elem-type n-items))
+  (setf (attribute-needs-update attr) t)
+  (values))
 
 (defun set-attribute-nth-item (attr n val)
   (setf (attribute-needs-update attr) t)
-  (setf (gl:glaref (attribute-items attr)) val))
+  (setf (gl:glaref (attribute-items attr) n) val)
+  (values))
 
 (defun set-attribute-items (attr elem-type items)
   "Set attribute items from a vector"
@@ -86,7 +89,15 @@
   (setf (attribute-n-items attr) (* (length items) (element-type->component-count elem-type)))
   (setf (attribute-items attr)
         (create-gl-array (attribute-component-type attr) elem-type items))
-  (setf (attribute-needs-update attr) t))
+  (setf (attribute-needs-update attr) t)
+  (values))
+
+(defun grow-attribute (attr n-items)
+  (when (attribute-items attr)
+    (gl:free-gl-array (attribute-items attr)))
+  (incf (attribute-n-items attr) n-items)
+  (setf (attribute-items attr) (gl:alloc-gl-array (attribute-component-type attr) (attribute-n-items attr)))
+  (values))
 
 (defun destroy-attribute (attr)
   (gl:delete-buffers (list (attribute-id attr))))
@@ -95,17 +106,33 @@
   (unless (attribute-id attr)
     (setf (attribute-id attr) (gl:gen-buffer))))
 
+(defun enable-instance-transform (attr)
+  (loop :for i :from 0 :below 4 :do
+    (gl:enable-vertex-attrib-array (+ i (attribute-kind attr)))
+    (gl:vertex-attrib-pointer (+ i (attribute-kind attr))
+			      4
+			      :float
+			      nil
+			      (* 4 4 4)
+			      (cffi:make-pointer (* i 4 4)))
+    (%gl:vertex-attrib-divisor (+ i (attribute-kind attr)) 1)
+	))
+
 (defun enable-vertex-attribute (attr)
   (unless (eq (attribute-target attr) :element-array-buffer)
     (ensure-buffer-id attr)
     (gl:bind-buffer (attribute-target attr) (attribute-id attr))
-    (gl:enable-vertex-attrib-array (attribute-kind attr))
-    (gl:vertex-attrib-pointer (attribute-kind attr)
-                              (attribute-component-count attr)
-                              (attribute-component-type attr)
-                              nil
-                              0
-                              (cffi:make-pointer 0))))
+    (if (= (attribute-kind attr) +vertex-attribute-instance-transform+)
+	(enable-instance-transform attr)
+	(progn
+	  (gl:enable-vertex-attrib-array (attribute-kind attr))
+	  (gl:vertex-attrib-pointer (attribute-kind attr)
+				    (attribute-component-count attr)
+				    (attribute-component-type attr)
+				    nil
+				    0
+				    (cffi:make-pointer 0))
+	  ))))
 
 (defun upload-attribute (attr)
   (when (and (attribute-needs-update attr) (attribute-items attr))

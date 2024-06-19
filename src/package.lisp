@@ -48,8 +48,9 @@
    :basic-vertex-color-shader
    :basic-texture-shader
 
-   :make-mesh
+   :create-mesh
    :render-mesh
+   :create-mesh-instance
 
    :create-basic-vertex-color-material
    :create-basic-texture-material

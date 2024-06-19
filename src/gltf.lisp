@@ -2,6 +2,13 @@
 
 (defclass gltf-scene (object) ())
 
+(defun gltf-component-type->component-type (ct)
+  (case ct
+    (:uint8     :unsigned-byte)
+    (:uint16    :unsigned-short)
+    (:uint32    :unsigned-int)
+    (otherwise  ct)))
+
 (defun vector->vec3 (v)
   (vec (elt v 0) (elt v 1) (elt v 2)))
 
@@ -45,7 +52,7 @@
           (get-accessor-items att)
           :target (if (eq k :INDICES) :element-array-buffer :array-buffer)
           :kind (attribute-name->kind k)
-          :component-type (gltf:component-type att)
+          :component-type (gltf-component-type->component-type (gltf:component-type att))
           :component-count (element-type->component-count (gltf:element-type att))
           :element-type (gltf:element-type att)))
        (map-attributes (prim)
@@ -59,8 +66,10 @@
            (geo (create-geometry (gltf:mode prim) attrs :static)))
       (geometry-set-indices geo idxs)
       (upload-geometry geo)
-      (make-mesh :geometry geo
-		 :material (material-from-gltf (gltf:material prim) rtextures)))))
+      (create-mesh
+       :name (format nil "gltf-mesh~a" (gltf:idx gmesh))
+       :geometry geo
+       :material (material-from-gltf (gltf:material prim) rtextures)))))
 
 (defun create-object-from-gltf (gnode rmeshes)
   (let ((children (loop

@@ -164,10 +164,24 @@
   (gl:bind-vertex-array (geometry-vao geo))
   (gl:draw-arrays prim start count))
 
+(defun draw-arrays-instanced (geo prim start count)
+  (sync-ubos)
+  (gl:bind-vertex-array (geometry-vao geo))
+  (gl:draw-arrays-instanced prim start count (geometry-instance-count geo)))
+
 (defun draw-elements (geo prim start count)
   (sync-ubos)
   (gl:bind-vertex-array (geometry-vao geo))
   (gl:draw-elements prim
-                    (gl:make-null-gl-array :unsigned-short)
+                    (gl:make-null-gl-array (attribute-component-type (geometry-indices geo)))
                     :offset start
                     :count count))
+
+(defun draw-elements-instanced (geo prim start count)
+  (sync-ubos)
+  (gl:bind-vertex-array (geometry-vao geo))
+  (gl:draw-elements-instanced prim
+			      (gl:make-null-gl-array (attribute-component-type (geometry-indices geo)))
+			      (geometry-instance-count geo)
+			      :offset start
+			      :count count))

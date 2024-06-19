@@ -31,7 +31,8 @@
 
 (defclass model (object)
   ((mesh :initarg :mesh :initform nil :type mesh :accessor model-mesh)
-   (material :initarg :material :initform nil :type material :accessor model-material)))
+   (material :initarg :material :initform nil :type material :accessor model-material)
+   (instance-id :initarg :instance-id :initform nil :type integer :accessor model-instance-id)))
 
 (defclass camera (object)
   ((projection :initform (meye 4) :accessor camera-projection)
@@ -118,13 +119,18 @@
       (traverse-with-parent root f))))
 
 (defmethod render-object ((m model))
-  (set-transform (world-transform m))
-  (render-mesh (model-mesh m) (model-material m))
-  )
+  (if (geometry-instanced-p (mesh-geometry (model-mesh m)))
+      (set-instance-transform (mesh-geometry (model-mesh m))
+			      (model-instance-id m)
+			      (world-transform m))
+      (progn
+	(set-transform (world-transform m))
+	(render-mesh (model-mesh m) (model-material m)))))
 
 (defun render-scene (s cam)
   (gl:enable :depth-test)
   (multiple-value-bind (proj view) (camera-matrices cam)
     (set-projection-view proj view))
   (traverse s (lambda (child) (render-object child)))
+  (render-instanced-meshes)
   (gl:disable :depth-test))

@@ -58,6 +58,7 @@ layout (std140) uniform objectData {
   (gl:bind-attrib-location program +vertex-attribute-color+ "color")
   (gl:bind-attrib-location program +vertex-attribute-texcoord0+ "texcoord0")
   (gl:bind-attrib-location program +vertex-attribute-texcoord1+ "texcoord1")
+  (gl:bind-attrib-location program +vertex-attribute-instance-transform+ "instance_transform")
 
   (gl:link-program program)
 
@@ -109,6 +110,7 @@ layout (std140) uniform objectData {
                   filename)))
 
 (defparameter *basic-vertex-color-shader* nil)
+(defparameter *basic-vertex-color-instanced-shader* nil)
 (defparameter *basic-texture-shader* nil)
 
 (defparameter +basic-vertex-color-source+
@@ -122,6 +124,33 @@ smooth out vec4 passColor;
 
 void main() {
     gl_Position = projview * transform * vec4(position, 1.0);
+    passColor = color;
+}
+
+#else
+
+smooth in vec4 passColor;
+
+out vec4 outColor;
+
+void main() {
+	outColor = ucolor;
+}
+
+#endif
+")
+(defparameter +basic-vertex-color-instanced-source+
+  "
+#ifdef VERTEX_SHADER
+
+in vec3  position;
+in vec4  color;
+in mat4  instance_transform;
+
+smooth out vec4 passColor;
+
+void main() {
+    gl_Position = projview * instance_transform * vec4(position, 1.0);
     passColor = color;
 }
 
@@ -170,6 +199,11 @@ void main() {
   (unless *basic-vertex-color-shader*
     (setf *basic-vertex-color-shader* (create-shader +basic-vertex-color-source+ "basic-vertex-color-shader")))
   *basic-vertex-color-shader*)
+
+(defun basic-vertex-color-instanced-shader ()
+  (unless *basic-vertex-color-instanced-shader*
+    (setf *basic-vertex-color-instanced-shader* (create-shader +basic-vertex-color-instanced-source+ "basic-vertex-color-instanced-shader")))
+  *basic-vertex-color-instanced-shader*)
 
 (defun basic-texture-shader ()
   (unless *basic-texture-shader*

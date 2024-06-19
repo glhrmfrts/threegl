@@ -8,14 +8,15 @@
   (attrs nil)
   (indices nil)
   (usage :static)
-  (vertex-draw-count 0))
+  (vertex-draw-count 0)
+  (instanced-p nil))
 
-(defun create-geometry (primitives attrs usage)
+(defun create-geometry (primitives attrs usage &key (instanced-p nil))
   (declare (type usage buffer-usage))
   (let* ((vao (gl:gen-vertex-array)))
     (gl:bind-vertex-array vao)
     (loop :for attr :in attrs :do (enable-vertex-attribute attr))
-    (make-geometry :vao vao :attrs attrs :usage usage :primitives primitives)))
+    (make-geometry :vao vao :attrs attrs :usage usage :primitives primitives :instanced-p instanced-p)))
 
 (defun geometry-set-indices (geo indices)
   (declare (type geo geometry)
@@ -36,13 +37,41 @@
           (/ (attribute-n-items (geometry-indices buf)) (attribute-component-count (geometry-indices buf))))
     (upload-attribute (geometry-indices buf))))
 
-(defun draw-geometry (buf &key (offset 0) (count (geometry-vertex-draw-count buf)))
-  (gl:bind-vertex-array (geometry-vao buf))
-  (if (geometry-indices buf)
+(defun draw-geometry (geo &key (offset 0) (count (geometry-vertex-draw-count geo)))
+  (gl:bind-vertex-array (geometry-vao geo))
+  (if (geometry-indices geo)
       (progn
-        (bind-attribute (geometry-indices buf))
-        (draw-elements buf (geometry-primitives buf) offset count))
-      (draw-arrays buf (geometry-primitives buf) offset count)))
+        (bind-attribute (geometry-indices geo))
+        (draw-elements geo (geometry-primitives geo) offset count))
+      (draw-arrays geo (geometry-primitives geo) offset count)))
+
+(defun draw-geometry-instanced (geo &key (offset 0) (count (geometry-vertex-draw-count geo)))
+  (gl:bind-vertex-array (geometry-vao geo))
+  (if (geometry-indices geo)
+      (progn
+	(bind-attribute (geometry-indices geo))
+	(draw-elements-instanced geo (geometry-primitives geo) offset count))
+      (draw-arrays-instanced geo (geometry-primitives geo) offset count)))
+
+(defun create-instance (geo)
+  (let* ((attr (find-attribute geo +vertex-attribute-instance-transform+))
+	 (id (attribute-n-items attr)))
+    (grow-attribute attr 16)
+    id))
+
+(defun set-instance-transform (geo id trans)
+  (let ((attr (find-attribute geo +vertex-attribute-instance-transform+)))
+    (unless attr
+      (error "geometry is not instanced"))
+    (loop :for col-idx :from 0 :below 4 :do
+      (let ((col (mcol trans col-idx)))
+	(loop :for i :from 0 :below 4 :do
+	  (set-attribute-nth-item attr
+				  (+ id (* col-idx 4) i)
+				  (elt col i)))))))
+
+(defun geometry-instance-count (geo)
+  (/ (attribute-n-items (find-attribute geo +vertex-attribute-instance-transform+)) 16))
 
 (defun generate-cube-data ()
   "Generates vertices and colors for a cube, all colors set to white."
@@ -90,7 +119,7 @@
                                      -1  1  1         ; Top-left
                                      -1  1 -1         ; Top-right
                              )))
-         (colors (loop repeat 36 append '(1.0 1.0 1.0 1.0))))  ; 24 vertices, each with the color white (1.0, 1.0, 1.0)
+         (colors (loop :repeat 36 :append '(1.0 1.0 1.0 1.0))))  ; 24 vertices, each with the color white (1.0, 1.0, 1.0)
     (values vertices colors)))
 
 (defun generate-textured-cube-data ()
@@ -161,7 +190,7 @@
                            )))
     (values vertices texture-coords)))
 
-(defun create-cube-geometry ()
+(defun create-cube-geometry (&key (instanced-p nil))
   (multiple-value-bind (vertices colors) (generate-cube-data)
     (let* ((vert-attr (make-attribute-with-items (coerce vertices 'vector)
                                                  :kind +vertex-attribute-position+
@@ -173,7 +202,8 @@
                                                   :element-type :scalar
                                                   :component-type :float
                                                   :component-count 4))
-           (geo (create-geometry :triangles (list vert-attr color-attr) :static)))
+	   (transform-attr (if instanced-p (list (make-attribute :kind +vertex-attribute-instance-transform+ :component-type :float :component-count 16 :usage :dynamic-draw :instanced-p t)) ()))
+           (geo (create-geometry :triangles (append (list vert-attr color-attr) transform-attr) :static :instanced-p instanced-p)))
       (upload-geometry geo)
       geo)))
 

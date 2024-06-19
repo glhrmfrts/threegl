@@ -14,10 +14,14 @@
   (mode :opaque :type render-mode)
   (color (vec 1 1 1 1) :type vec4)
   (shader nil)
-  (texture nil))
+  (texture nil)
+  (instanced-p nil))
 
 (defun create-basic-vertex-color-material (&rest other-keys)
-  (let ((args (append other-keys (list :shader (threegl:basic-vertex-color-shader)))))
+  (let ((args (append other-keys (list :shader
+				       (if (getf other-keys :instanced-p)
+					   (basic-vertex-color-instanced-shader)
+					   (basic-vertex-color-shader))))))
     (apply #'make-material args)))
 
 (defun create-basic-texture-material (&rest other-keys)

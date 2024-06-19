@@ -6,14 +6,14 @@
 (defconstant +tmb-normal-components+ 3)
 (defconstant +tmb-color-components+ 4)
 
-(defstruct triangle-mesh-builder
-  (n-elems :accessor tmb-n-elems)
-  (n-indices :accessor tmb-n-indices)
-  (vertices :accessor tmb-vertices)
-  (uvs :accessor tmb-uvs)
-  (normals :accessor tmb-normals)
-  (colors :accessor tmb-colors)
-  (indices :accessor tmb-indices))
+(defclass triangle-mesh-builder ()
+  ((n-elems :accessor tmb-n-elems)
+   (n-indices :accessor tmb-n-indices)
+   (vertices :accessor tmb-vertices)
+   (uvs :accessor tmb-uvs)
+   (normals :accessor tmb-normals)
+   (colors :accessor tmb-colors)
+   (indices :accessor tmb-indices)))
 
 (defun triangle-mesh-n-elements (b) (tmb-n-elems b))
 (defun triangle-mesh-n-indices (b) (tmb-n-indices b))
