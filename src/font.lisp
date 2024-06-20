@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (bs:define-io-structure font-glyph-data
   (adv-x sint32)

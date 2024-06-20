@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (defparameter +uniforms-block+
   "
@@ -134,7 +134,7 @@ smooth in vec4 passColor;
 out vec4 outColor;
 
 void main() {
-	outColor = ucolor;
+	outColor = passColor * ucolor;
 }
 
 #endif
@@ -161,7 +161,7 @@ smooth in vec4 passColor;
 out vec4 outColor;
 
 void main() {
-	outColor = ucolor;
+	outColor = passColor * ucolor;
 }
 
 #endif

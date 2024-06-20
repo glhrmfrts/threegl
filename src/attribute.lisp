@@ -8,6 +8,7 @@
 (defconstant +vertex-attribute-texcoord0+ 3)
 (defconstant +vertex-attribute-texcoord1+ 4)
 (defconstant +vertex-attribute-instance-transform+ 5)
+(defconstant +vertex-attribute-index+ 999)
 
 (defstruct attribute
   kind
@@ -67,6 +68,8 @@
     attr))
 
 (defun bind-attribute (attr)
+  (when (= (attribute-kind attr) +vertex-attribute-index+)
+    (setf (attribute-target attr) :element-array-buffer))
   (gl:bind-buffer (attribute-target attr) (attribute-id attr)))
 
 (defun setup-attribute (attr elem-type n-items)
@@ -121,7 +124,7 @@
 (defun enable-vertex-attribute (attr)
   (unless (eq (attribute-target attr) :element-array-buffer)
     (ensure-buffer-id attr)
-    (gl:bind-buffer (attribute-target attr) (attribute-id attr))
+    (bind-attribute attr)
     (if (= (attribute-kind attr) +vertex-attribute-instance-transform+)
 	(enable-instance-transform attr)
 	(progn
@@ -137,7 +140,7 @@
 (defun upload-attribute (attr)
   (when (and (attribute-needs-update attr) (attribute-items attr))
     (ensure-buffer-id attr)
-    (gl:bind-buffer (attribute-target attr) (attribute-id attr))
+    (bind-attribute attr)
     (if (and (attribute-ever-uploaded attr)
              (<= (attribute-n-items attr) (attribute-max-size attr)))
         (gl:buffer-sub-data (attribute-target attr) (attribute-items attr))

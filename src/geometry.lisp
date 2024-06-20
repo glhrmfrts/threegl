@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (deftype index-format () '(member :uint16 :uint32))
 
@@ -7,7 +7,7 @@
   (primitives nil)
   (attrs nil)
   (indices nil)
-  (usage :static)
+  (usage :static-draw)
   (vertex-draw-count 0)
   (instanced-p nil))
 
@@ -19,8 +19,8 @@
     (make-geometry :vao vao :attrs attrs :usage usage :primitives primitives :instanced-p instanced-p)))
 
 (defun geometry-set-indices (geo indices)
-  (declare (type geo geometry)
-           (type indices attribute))
+  (declare (type geometry geo)
+           (type attribute indices))
   (setf (geometry-indices geo) indices))
 
 (defun find-attribute (geo kind)
@@ -33,8 +33,7 @@
           (setf (geometry-vertex-draw-count buf)
                 (/ (attribute-n-items attr) (attribute-component-count attr)))))
   (when (geometry-indices buf)
-    (setf (geometry-vertex-draw-count buf)
-          (/ (attribute-n-items (geometry-indices buf)) (attribute-component-count (geometry-indices buf))))
+    (setf (geometry-vertex-draw-count buf) (attribute-n-items (geometry-indices buf)))
     (upload-attribute (geometry-indices buf))))
 
 (defun draw-geometry (geo &key (offset 0) (count (geometry-vertex-draw-count geo)))

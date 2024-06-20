@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (defstruct mesh
   "A mesh couples geometry data with a material to render with"
@@ -22,7 +22,8 @@
 
 (defun create-mesh (&rest other-keys)
   (let ((m (apply #'make-mesh other-keys)))
-    (register-mesh (getf other-keys :name) m)
+    (when (getf other-keys :name)
+      (register-mesh (getf other-keys :name) m))
     m))
 
 (defun create-mesh-instance (mesh)

@@ -60,7 +60,8 @@
    (move-front-pressed :initform 0.0 :accessor move-front-pressed)
    (move-back-pressed :initform 0.0 :accessor move-back-pressed)
    (move-x :initform 0.0 :accessor och-move-x)
-   (move-y :initform 0.0 :accessor och-move-y)))
+   (move-y :initform 0.0 :accessor och-move-y)
+   (look-at :initform nil :accessor och-look-at)))
 
 (defun orbit-control-key-changed (ctrl key action modifiers)
   (cond
@@ -84,6 +85,9 @@
   (setf (pan-pressed ctrl) (and (eq btn :right) (eq action :press)))
   )
 
+(defun orbit-control-look-at (c pos)
+  (setf (och-look-at c) pos))
+
 (defun orbit-control-update (c dt)
   (defconstant +speed+ 0.1)
 
@@ -100,10 +104,17 @@
     ;;(setf (rotation c) (q* (rotation c) (qfrom-angle up (och-yaw c))))
     ;;(setf (rotation c) (q* (rotation c) (qfrom-angle right (och-pitch c))))
 
-    (setf (rotation c) (q* (qfrom-angle up (och-yaw c)) (qfrom-angle right (och-pitch c))))
+    ;; @TODO: fix whatever the fuck is going on with qlookat
+    (if (och-look-at c)
+        (let* ((dir (vunit (v- (translation c) (och-look-at c)))))
+	  (setf (rotation c) (quat))
+	  )
+	(setf (rotation c) (q* (qfrom-angle up (och-yaw c)) (qfrom-angle right (och-pitch c)))))
 
-    (setf (och-move-x c) (* (+ (* 1.0 (move-right-pressed c)) (* -1.0 (move-left-pressed c))) dt 10.0))
-    (setf (och-move-y c) (* (+ (* 1.0 (move-front-pressed c)) (* -1.0 (move-back-pressed c))) dt 10.0))
+    (setf (och-move-x c)
+	  (* (+ (* 1.0 (move-right-pressed c)) (* -1.0 (move-left-pressed c))) dt 50.0))
+    (setf (och-move-y c)
+	  (* (+ (* 1.0 (move-front-pressed c)) (* -1.0 (move-back-pressed c))) dt 50.0))
 
     (when (pan-pressed c)
       (setf (och-move-x c) (* -0.05 (och-mouse-move-x c)))

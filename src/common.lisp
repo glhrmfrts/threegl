@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 ;; vec4 structure to send to GPU
 (bs:define-io-structure vec4-s

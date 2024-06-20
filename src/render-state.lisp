@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (bs:define-io-structure one-float
   (x float32))
@@ -23,6 +23,10 @@
   (transform (meye 4) :type mat4)
   (color (vec 1 1 1 1) :type vec4))
 
+(defstruct stats
+  (draw-calls 0)
+  (vertices 0))
+
 (defparameter *view-data* (make-view-data))
 (defparameter *object-data* (make-object-data))
 (defparameter *frame-data* (make-frame-data))
@@ -40,6 +44,8 @@
 
 (defparameter *view-width* 1280)
 (defparameter *view-height* 720)
+
+(defparameter *stats* (make-stats))
 
 (defgeneric write-gl-value (x buf))
 
@@ -152,6 +158,8 @@
       (setf *object-dirty* nil))))
 
 (defun begin-frame (dt)
+  (setf (stats-draw-calls *stats*) 0
+	(stats-vertices *stats*) 0)
   (incf (frame-data-time *frame-data*) dt)
   (setf (frame-data-delta-time *frame-data*) dt)
   (setf *frame-dirty* t))
@@ -162,12 +170,18 @@
 (defun draw-arrays (geo prim start count)
   (sync-ubos)
   (gl:bind-vertex-array (geometry-vao geo))
-  (gl:draw-arrays prim start count))
+  (gl:draw-arrays prim start count)
+  (incf (stats-draw-calls *stats*))
+  (incf (stats-vertices *stats*) count)
+  (values))
 
 (defun draw-arrays-instanced (geo prim start count)
   (sync-ubos)
   (gl:bind-vertex-array (geometry-vao geo))
-  (gl:draw-arrays-instanced prim start count (geometry-instance-count geo)))
+  (gl:draw-arrays-instanced prim start count (geometry-instance-count geo))
+  (incf (stats-draw-calls *stats*))
+  (incf (stats-vertices *stats*) (* count (geometry-instance-count geo)))
+  (values))
 
 (defun draw-elements (geo prim start count)
   (sync-ubos)
@@ -175,7 +189,10 @@
   (gl:draw-elements prim
                     (gl:make-null-gl-array (attribute-component-type (geometry-indices geo)))
                     :offset start
-                    :count count))
+                    :count count)
+  (incf (stats-draw-calls *stats*))
+  (incf (stats-vertices *stats*) count)
+  (values))
 
 (defun draw-elements-instanced (geo prim start count)
   (sync-ubos)
@@ -184,4 +201,7 @@
 			      (gl:make-null-gl-array (attribute-component-type (geometry-indices geo)))
 			      (geometry-instance-count geo)
 			      :offset start
-			      :count count))
+			      :count count)
+  (incf (stats-draw-calls *stats*))
+  (incf (stats-vertices *stats*) (* count (geometry-instance-count geo)))
+  (values))

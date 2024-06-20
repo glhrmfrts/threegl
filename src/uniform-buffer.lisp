@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (defstruct uniform-buffer
   (id 0)

@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (deftype render-mode () '(member :opaque :alpha :cutout))
 

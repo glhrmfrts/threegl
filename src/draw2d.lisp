@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (defconstant +tex2d-vertex-size+ 4)
 

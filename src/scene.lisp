@@ -3,6 +3,8 @@
 (defconstant +object-flag-static+ 1)
 (defconstant +object-flag-transform-dirty+ 4096)
 
+;; @TODO: create private accessors for translation, rotation, scale and create
+;; a setf public function that sets the transform-dirty flag
 (defclass object ()
   ((name :initarg :name :initform "" :accessor name)
    (translation :initarg :translation :initform (vec 0 0 0) :accessor translation)
@@ -42,6 +44,7 @@
    (near :initarg :near :initform 0.1 :accessor camera-near)
    (far :initarg :far :initform 1000.0 :accessor camera-far)))
 
+;; @TODO: cache this as well depending on transform-dirty
 (defun camera-matrices (cam)
   (setf (camera-projection cam)
 	(mperspective (camera-fov cam)
@@ -102,6 +105,10 @@
   (assert (null (parent child)))
   (setf (parent child) obj)
   (setf (children obj) (append (children obj) (list child))))
+
+(defun remove-from-parent (child)
+  (setq (children (parent child))
+	(remove child (children (parent child)) :test #'eq)))
 
 (defun traverse (obj f)
   (funcall f obj)

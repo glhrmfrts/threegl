@@ -1,4 +1,4 @@
-(in-package :threegl)
+(in-package #:threegl)
 
 (deftype texture-format '(member r8 rgba8 rgba16f depth-component32f))
 

@@ -15,6 +15,11 @@
    :init-render-state
    :destroy-render-state
 
+   :stats
+   :*stats*
+   :stats-draw-calls
+   :stats-vertices
+
    :begin-frame
    :end-frame
    :set-clear-color
@@ -58,6 +63,8 @@
 
    :load-gltf
 
+   :+object-flag-static+
+   :+object-flag-transform-dirty+
    :object
    :translation
    :world-translation
@@ -69,6 +76,10 @@
    :world-front-vector
    :world-right-vector
    :world-up-vector
+   :add-flag
+   :has-flag-p
+   :remove-flag
+   :add-flag-recur
    :children
    :model
    :camera
@@ -85,6 +96,7 @@
    :orbit-control-mouse-moved
    :orbit-control-key-changed
    :orbit-control-mouse-button-changed
+   :orbit-control-look-at
    :orbit-control-update
 
    :triangle-mesh-builder

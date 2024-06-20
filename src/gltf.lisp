@@ -40,7 +40,7 @@
            (:COLOR +vertex-attribute-color+)
            (:TEXCOORD_0 +vertex-attribute-texcoord0+)
            (:TEXCOORD_1 +vertex-attribute-texcoord1+)
-           (:INDICES 0)))
+           (:INDICES +vertex-attribute-index+)))
        (collect-accessor-items (att)
          (loop :for i :from 0 :below (length att)
                :collect (if (vectorp (elt att i)) (copy-seq (elt att i)) (elt att i))))
