@@ -150,10 +150,11 @@
      (reset-batch tex)
      (add-to-batch rec tex-rec))))
 
-(defun measure-text (text &key (out-size nil))
+(defun measure-text (text &key (end nil) (out-size nil))
   (let ((cur-x 0.0)
         (cur-y 0.0)
-	(max-x 0.0))
+	(max-x 0.0)
+	(idx 0))
 
     (labels
       ((find-glyph-data (c)
@@ -165,18 +166,19 @@
           (if (equal c (char " " 0))
             (incf cur-x (font-glyph-data-adv-x gd))
 	    (progn
-              (incf cur-x (font-glyph-data-char-width gd))
-	      (setq max-x (max max-x cur-x)))))))
+              (incf cur-x (font-glyph-data-char-width gd))))
+	  (setq max-x (max max-x cur-x)))))
 
       (with-input-from-string (input text)
-        (loop :for line = (read-line input nil nil)
-              :while line :do
+        (loop :for line = (read-line input nil nil) :while line :do
           (setq cur-x 0.0)
-          (loop :for c :across line do
-            (generate-glyph-vertices c))
+          (loop :for c :across line :while (or (not end) (< idx end)) :do
+            (generate-glyph-vertices c)
+	    (incf idx))
           (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*)))))
 
       (when out-size
+	;;(when end (format t "~a (~a) => ~a~%" text end max-x))
 	(setf (vx2 out-size) max-x)
 	(setf (vy2 out-size) cur-y)))))
 
@@ -228,10 +230,9 @@
 	      (setq max-x (max max-x cur-x)))))))
 
       (with-input-from-string (input text)
-        (loop :for line = (read-line input nil nil)
-              :while line :do
+        (loop :for line = (read-line input nil nil) :while line :do
           (setq cur-x (vx2 pos))
-          (loop :for c :across line do
+          (loop :for c :across line :do
             (generate-glyph-vertices c))
           (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*))))))
 

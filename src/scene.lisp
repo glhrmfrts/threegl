@@ -107,7 +107,7 @@
   (setf (children obj) (append (children obj) (list child))))
 
 (defun remove-from-parent (child)
-  (setq (children (parent child))
+  (setf (children (parent child))
 	(remove child (children (parent child)) :test #'eq)))
 
 (defun traverse (obj f)

@@ -34,7 +34,7 @@ void main() {
 ")
 
 (defun init-postfx ()
-  (setf *testfbo* (create-framebuffer 1280 720 1 (list :depth)))
+  (setf *testfbo* (create-framebuffer 640 360 1 (list :depth)))
   (setf *testshader* (create-shader +testshader-source+ "testshader")))
 
 (defun draw-screen ()
