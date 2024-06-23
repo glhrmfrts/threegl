@@ -134,7 +134,7 @@
 
 (defun set-color (c)
   ;;(format t "~a ~a ~a ~a~%" (vx4 c) (vy4 c) (vz4 c) (vw4 c))
-  (setf (object-data-color *object-data*) c)
+  (setf (object-data-color *object-data*) (vcopy c))
   (setf *object-dirty* t))
 
 (defun set-material (mat)

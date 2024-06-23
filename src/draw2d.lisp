@@ -187,70 +187,77 @@
   (declare (type vec2 pos))
   (declare (type vec4 color))
 
-  (defconstant +vertex-per-char+ 6)
+  (unless (zerop (length text))
 
-  (let* ((cur-x (vx2 pos))
-         (cur-y (vy2 pos))
-	 (max-x cur-x)
-         (nverts (* (length text) +vertex-per-char+))
-         (verts (make-array (* nverts 2) :element-type :float :fill-pointer 0))
-         (texcoords (make-array (* nverts 2) :element-type :float :fill-pointer 0)))
+    (defconstant +vertex-per-char+ 6)
 
-    (labels
-      ((find-glyph-data (c)
-        (aref (font-atlas-glyph-data (font-fnt *fnt*)) (char-code c)))
+    (let* ((cur-x (vx2 pos))
+           (cur-y (vy2 pos))
+	   (max-x cur-x)
+           (nverts (* (length text) +vertex-per-char+))
+           (verts (make-array (* nverts 2) :element-type 'single-float :fill-pointer 0))
+           (texcoords (make-array (* nverts 2) :element-type 'single-float :fill-pointer 0)))
 
-      (add-vertex (px py tx ty)
-        (loop :for el :in (list px py) :do (vector-push el verts))
-        (loop :for el :in (list tx ty) :do (vector-push el texcoords)))
+      (setf nverts 0)
 
-      (compute-glyph-y (gd)
-        (+ (font-glyph-data-adv-y gd) (- cur-y (font-glyph-data-char-height gd))))
+      (labels
+	  ((find-glyph-data (c)
+             (aref (font-atlas-glyph-data (font-fnt *fnt*)) (char-code c)))
 
-      (generate-glyph-vertices (c)
-        (let ((gd (find-glyph-data c)))
-          (incf cur-x (font-glyph-data-bearing-x gd))
-          (if (equal c (char " " 0))
-            (incf cur-x (font-glyph-data-adv-x gd))
-            (let* ((rec (rect-from-size
-                          (vec cur-x (compute-glyph-y gd))
-                          (vec (font-glyph-data-char-width gd) (font-glyph-data-char-height gd))))
-                   (tex-rec (make-rect
-                              :mins (vec (font-glyph-data-rect-x gd) (+ (font-glyph-data-rect-height gd) (font-glyph-data-rect-y gd)))
-                              :maxs (vec (+ (font-glyph-data-rect-width gd) (font-glyph-data-rect-x gd)) (font-glyph-data-rect-y gd)))))
+	   (add-vertex (px py tx ty)
+             (loop :for el :in (list px py) :do (vector-push el verts))
+             (loop :for el :in (list tx ty) :do (vector-push el texcoords)))
 
-              (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
-              (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-mins rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-mins tex-rec)))
-              (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
-              (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
-              (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
-              (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-maxs rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-maxs tex-rec)))
+	   (compute-glyph-y (gd)
+             (+ (font-glyph-data-adv-y gd) (- cur-y (font-glyph-data-char-height gd))))
 
-              (incf cur-x (font-glyph-data-char-width gd))
-	      (setq max-x (max max-x cur-x)))))))
+	   (generate-glyph-vertices (c)
+             (let ((gd (find-glyph-data c)))
+               (incf cur-x (font-glyph-data-bearing-x gd))
+               (if (equal c (char " " 0))
+		   (incf cur-x (font-glyph-data-adv-x gd))
+		   (let* ((rec (rect-from-size
+				(vec cur-x (compute-glyph-y gd))
+				(vec (font-glyph-data-char-width gd) (font-glyph-data-char-height gd))))
+			  (tex-rec (make-rect
+				    :mins (vec (font-glyph-data-rect-x gd) (+ (font-glyph-data-rect-height gd) (font-glyph-data-rect-y gd)))
+				    :maxs (vec (+ (font-glyph-data-rect-width gd) (font-glyph-data-rect-x gd)) (font-glyph-data-rect-y gd)))))
 
-      (with-input-from-string (input text)
-        (loop :for line = (read-line input nil nil) :while line :do
-          (setq cur-x (vx2 pos))
-          (loop :for c :across line :do
-            (generate-glyph-vertices c))
-          (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*))))))
+		     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
+		     (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-mins rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-mins tex-rec)))
+		     (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
+		     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
+		     (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
+		     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-maxs rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-maxs tex-rec)))
+		     (incf nverts 6)
 
-    (set-shader *tex2d-shader*)
-    (set-color color)
-    (bind-texture (font-tex *fnt*) :texture0)
-    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-position+)
-                         :scalar
-                         (coerce verts 'vector))
-    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-texcoord0+)
-                         :scalar
-                         (coerce texcoords 'vector))
-    (upload-geometry *tex2d-geo*)
-    (draw-arrays *tex2d-geo* :triangles 0 nverts)
+		     (incf cur-x (font-glyph-data-char-width gd))
+		     (setq max-x (max max-x cur-x)))))))
 
-    (when out-size
-      (setf (vx2 out-size) (- max-x (vx2 pos)))
-      (setf (vy2 out-size) (- cur-y (vy2 pos))))))
+	(with-input-from-string (input text)
+          (loop :for line = (read-line input nil nil) :while line :do
+            (setq cur-x (vx2 pos))
+            (loop :for c :across line :do
+              (generate-glyph-vertices c))
+            (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*))))))
+
+      (when (> (length verts) 0)
+
+	(set-shader *tex2d-shader*)
+	(set-color color)
+	(bind-texture (font-tex *fnt*) :texture0)
+	(set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-position+)
+                             :scalar
+                             (coerce verts 'vector))
+	(set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-texcoord0+)
+                             :scalar
+                             (coerce texcoords 'vector))
+	(upload-geometry *tex2d-geo*)
+	(draw-arrays *tex2d-geo* :triangles 0 nverts)
+
+	(when out-size
+	  (setf (vx2 out-size) (- max-x (vx2 pos)))
+	  (setf (vy2 out-size) (- cur-y (vy2 pos))))))))
 
 (defun end-draw2d ()
   (gl:disable :blend))
