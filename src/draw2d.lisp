@@ -16,7 +16,7 @@
 (defparameter *prev-primitive* nil)
 (defparameter *prev-tex* nil)
 
-(defparameter *batch-maxverts* 4096)
+(defparameter *batch-maxverts* (* 1024 8))
 (defparameter *batch-verts* nil)
 (defparameter *batch-texcoords* nil)
 (defparameter *batch-colors* nil)
@@ -132,6 +132,14 @@
     (flush-draw2d)
     (reset-batch *prev-batch* *prev-tex* *prev-primitive*)))
 
+(defun configure-batch (batch prim nverts tex)
+  ;; @TODO: do everything inside this function, instead of having
+  ;; separate functions and prev- variables
+  (set-batch batch)
+  (set-primitive prim)
+  (set-texture tex)
+  (ensure-batch-capacity nverts))
+
 (defun add-vertex-to-texture-batch (px py tx ty cr cg cb ca)
   (vector-push px *batch-verts*)
   (vector-push py *batch-verts*)
@@ -145,7 +153,6 @@
 
 (defun add-vertex-to-color-batch (px py cr cg cb ca)
   ;;(format t "add-vertex-to-color-batch ~a ~a~%" *current-batch* *current-primitive*)
-  (ensure-batch-capacity 1)
   (vector-push px *batch-verts*)
   (vector-push py *batch-verts*)
   (vector-push cr *batch-colors*)
@@ -180,8 +187,7 @@
                 (vx2 (rect-mins tex-rec)) (vy2 (rect-maxs tex-rec)))))
 
 (defun draw-rect (rec color)
-  (set-batch :color)
-  (set-primitive :triangles)
+  (configure-batch :color :triangles 6 nil)
 
   (add-vertex-to-color-batch (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
 			     (vx color) (vy color) (vz color) (vw color))
@@ -204,16 +210,14 @@
   )
 
 (defun draw-lines (positions color)
-  (set-batch :color)
-  (set-primitive :lines)
+  (configure-batch :color :lines 1 nil)
   (loop :for i :from 0 :below (length positions) :do
     (let ((p1 (nth i positions)))
       (add-vertex-to-color-batch (vx2 p1) (vy2 p1) (vx color) (vy color) (vz color) (vw color))
       )))
 
 (defun draw-line-loop (positions color)
-  (set-batch :color)
-  (set-primitive :lines)
+  (configure-batch :color :lines (* 2 (length positions)) nil)
   (loop :for i :from 1 :below (length positions) :do
     (let ((p1 (nth (- i 1) positions))
 	  (p2 (nth (mod i (length positions)) positions)))
@@ -224,9 +228,7 @@
 (defun draw-texture-rect (tex rec tex-rec color)
   (declare (type rect rec tex-rect))
   (declare (type vec4 color))
-  (set-batch :texture)
-  (set-primitive :triangles)
-  (set-texture tex)
+  (configure-batch :texture :triangles 6 tex)
   (add-textured-quad-to-tex-batch rec tex-rec))
 
 (defun measure-text (text &key (end nil) (out-size nil))
@@ -273,10 +275,7 @@
 	   (max-x cur-x)
            (nverts (* (length text) +vertex-per-char+)))
 
-      (set-batch :texture)
-      (set-primitive :triangles)
-      (set-texture (font-tex *fnt*))
-      (ensure-batch-capacity nverts)
+      (configure-batch :texture :triangles nverts (font-tex *fnt*))
 
       (setf nverts 0)
 
