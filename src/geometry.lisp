@@ -42,7 +42,8 @@
       (progn
         (bind-attribute (geometry-indices geo))
         (draw-elements geo (geometry-primitives geo) offset count))
-      (draw-arrays geo (geometry-primitives geo) offset count)))
+      (draw-arrays geo (geometry-primitives geo) offset count)
+      ))
 
 (defun draw-geometry-instanced (geo &key (offset 0) (count (geometry-vertex-draw-count geo)))
   (gl:bind-vertex-array (geometry-vao geo))

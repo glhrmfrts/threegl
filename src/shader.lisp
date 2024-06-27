@@ -1,6 +1,6 @@
 (in-package #:threegl)
 
-(defparameter +uniforms-block+
+(defparameter *shader-uniforms-source*
   "
 layout (std140) uniform frameData {
         vec4 ambientLight;
@@ -35,7 +35,7 @@ layout (std140) uniform objectData {
 
 (defun process-shader-source (header source filename)
   (let ((string-list (list "#version 330"
-			   +uniforms-block+
+			   *shader-uniforms-source*
 			   header
 			   source)))
     (format nil "~{~a~%~}" string-list)))
@@ -113,101 +113,19 @@ layout (std140) uniform objectData {
 (defparameter *basic-vertex-color-instanced-shader* nil)
 (defparameter *basic-texture-shader* nil)
 
-(defparameter +basic-vertex-color-source+
-  "
-#ifdef VERTEX_SHADER
-
-in vec3  position;
-in vec4  color;
-
-smooth out vec4 passColor;
-
-void main() {
-    gl_Position = projview * transform * vec4(position, 1.0);
-    passColor = color;
-}
-
-#else
-
-smooth in vec4 passColor;
-
-out vec4 outColor;
-
-void main() {
-	outColor = passColor * ucolor;
-}
-
-#endif
-")
-(defparameter +basic-vertex-color-instanced-source+
-  "
-#ifdef VERTEX_SHADER
-
-in vec3  position;
-in vec4  color;
-in mat4  instance_transform;
-
-smooth out vec4 passColor;
-
-void main() {
-    gl_Position = projview * instance_transform * vec4(position, 1.0);
-    passColor = color;
-}
-
-#else
-
-smooth in vec4 passColor;
-
-out vec4 outColor;
-
-void main() {
-	outColor = passColor * ucolor;
-}
-
-#endif
-")
-(defparameter +basic-texture-source+
-    "
-#ifdef VERTEX_SHADER
-
-in vec3  position;
-in vec2  texcoord0;
-
-smooth out vec2 passTexCoord;
-
-void main() {
-    gl_Position = projview * transform * vec4(position, 1.0);
-    passTexCoord = texcoord0;
-}
-
-#else
-
-uniform sampler2D tex0;
-
-smooth in vec2 passTexCoord;
-
-out vec4 outColor;
-
-void main() {
-	outColor = texture(tex0, passTexCoord) * ucolor;
-}
-
-#endif
-")
-
 (defun basic-vertex-color-shader ()
   (unless *basic-vertex-color-shader*
-    (setf *basic-vertex-color-shader* (create-shader +basic-vertex-color-source+ "basic-vertex-color-shader")))
+    (setf *basic-vertex-color-shader* (create-shader *basic-vertex-color-source* "basic-vertex-color-shader")))
   *basic-vertex-color-shader*)
 
 (defun basic-vertex-color-instanced-shader ()
   (unless *basic-vertex-color-instanced-shader*
-    (setf *basic-vertex-color-instanced-shader* (create-shader +basic-vertex-color-instanced-source+ "basic-vertex-color-instanced-shader")))
+    (setf *basic-vertex-color-instanced-shader* (create-shader *basic-vertex-color-instanced-source* "basic-vertex-color-instanced-shader")))
   *basic-vertex-color-instanced-shader*)
 
 (defun basic-texture-shader ()
   (unless *basic-texture-shader*
-    (setf *basic-texture-shader* (create-shader +basic-texture-source+ "basic-texture-shader")))
+    (setf *basic-texture-shader* (create-shader *basic-texture-source* "basic-texture-shader")))
   *basic-texture-shader*)
 
 (defun destroy-static-shaders ()

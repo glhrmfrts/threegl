@@ -40,7 +40,8 @@ void main() {
 (defun draw-screen ()
   (unless *screen-geometry*
     (setf *screen-geometry* (create-screen-geometry)))
-  (draw-geometry *screen-geometry*))
+  (draw-geometry *screen-geometry*)
+  )
 
 (defun begin-postfx ()
   (bind-framebuffer *testfbo*))
@@ -50,4 +51,6 @@ void main() {
   (clear :color-buffer)
   (set-shader *testshader*)
   (bind-framebuffer-texture *testfbo* 0 :texture0)
-  (draw-screen))
+  (draw-screen)
+
+  )

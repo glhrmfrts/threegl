@@ -20,6 +20,7 @@
                (:file "attribute")
                (:file "geometry")
                (:file "texture")
+	       (:file "shaders")
                (:file "shader")
 	       (:file "framebuffer")
                (:file "material")

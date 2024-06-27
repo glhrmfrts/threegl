@@ -6,17 +6,26 @@
 (defparameter *tex2d-shader* nil)
 (defparameter *fnt* nil)
 
+(deftype batch-kind () '(member :texture :color :none))
+
+(defparameter *current-batch* :texture)
+(defparameter *current-primitive* nil)
 (defparameter *current-tex* nil)
+
+(defparameter *prev-batch* :texture)
+(defparameter *prev-primitive* nil)
+(defparameter *prev-tex* nil)
+
 (defparameter *batch-maxverts* 4096)
 (defparameter *batch-verts* nil)
+(defparameter *batch-texcoords* nil)
+(defparameter *batch-colors* nil)
 (defparameter *batch-nverts* 0)
 
 (defparameter *color2d-geo* nil)
 (defparameter *color2d-shader* nil)
 
-(defun init-draw2d (&key (texture-shader-path nil)
-                         (color-shader-path nil)
-                         (default-font-path nil))
+(defun init-draw2d (&key (default-font-path nil))
   (let ((attrs (list
                 (make-attribute :kind +vertex-attribute-position+
                                 :component-type :float
@@ -25,9 +34,13 @@
                 (make-attribute :kind +vertex-attribute-texcoord0+
                                 :component-type :float
                                 :component-count 2
+                                :usage :dynamic-draw)
+		(make-attribute :kind +vertex-attribute-color+
+                                :component-type :float
+                                :component-count 4
                                 :usage :dynamic-draw))))
     (setf *tex2d-geo* (create-geometry :triangles attrs :dynamic-draw))
-    (setf *tex2d-shader* (load-shader texture-shader-path))
+    (setf *tex2d-shader* (create-shader *tex2d-shader-source* "tex2d"))
     (setf *fnt* (load-font default-font-path)))
 
   (let ((attrs (list
@@ -40,86 +53,113 @@
                                 :component-count 4
                                 :usage :dynamic-draw))))
     (setf *color2d-geo* (create-geometry :triangles attrs :dynamic-draw))
-    (setf *color2d-shader* (load-shader color-shader-path))))
+    (setf *color2d-shader* (create-shader *color2d-shader-source* "color2d")))
+
+  (setf *batch-verts* (make-array (* *batch-maxverts* 2)
+                                  :element-type :float
+                                  :fill-pointer 0))
+  (setf *batch-colors* (make-array (* *batch-maxverts* 4)
+                                   :element-type :float
+                                   :fill-pointer 0))
+  (setf *batch-texcoords* (make-array (* *batch-maxverts* 2)
+                                      :element-type :float
+                                      :fill-pointer 0)))
 
 (defun begin-draw2d ()
   (gl:enable :blend)
   (gl:blend-func :src-alpha :one-minus-src-alpha))
+  ;;(print "begin-draw2d"))
 
-(defun draw-rect (rec color)
-  (let ((verts (list
-                  (vx2 (rect-mins rec)) (vy2 (rect-maxs rec))
-                  (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
-                  (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec))
-                  (vx2 (rect-maxs rec)) (vy2 (rect-mins rec))))
-        (colors (list
-                 1.0 1.0 1.0 1.0
-                 1.0 1.0 1.0 1.0
-                 1.0 1.0 1.0 1.0
-                 1.0 1.0 1.0 1.0)))
-    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-position+)
-                         :scalar
-                         (coerce verts 'vector))
-    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-color+)
-                         :scalar
-                         (coerce colors 'vector))
-    (set-shader *color2d-shader*)
-    (set-color color)
-    (upload-geometry *color2d-geo*)
-    (draw-arrays *color2d-geo* :triangle-strip 0 4)))
-
-(defun draw-line-loop (positions color)
-  (let ((verts (alexandria:flatten (mapcar
-                                    (lambda (p) (list (vx2 p) (vy2 p)))
-                                    positions)))
-        (colors (alexandria:flatten (mapcar
-                                     (lambda (p) (list 1.0 1.0 1.0 1.0))
-                                     positions))))
-    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-position+)
-                         :scalar
-                         (coerce verts 'vector))
-    (set-attribute-items (find-attribute *color2d-geo* +vertex-attribute-color+)
-                         :scalar
-                         (coerce colors 'vector))
-    (set-shader *color2d-shader*)
-    (set-color color)
-    (upload-geometry *color2d-geo*)
-    (draw-arrays *color2d-geo* :line-loop 0 (length positions))))
-
-(defun reset-batch (tex)
+(defun reset-batch (batch tex primitive)
+  (setf *current-batch* batch)
   (setf *current-tex* tex)
+  (setf *current-primitive* primitive)
   (setf *batch-nverts* 0)
-  (setf *batch-verts* (make-array (* *batch-maxverts* 2)
-                                  :element-type :float
-                                  :fill-pointer 0))
-  (setf *batch-texcoords* (make-array (* *batch-maxverts* 2)
-                                  :element-type :float
-                                  :fill-pointer 0)))
+  (setf (fill-pointer *batch-verts*) 0)
+  (setf (fill-pointer *batch-colors*) 0)
+  (setf (fill-pointer *batch-texcoords*) 0))
 
 (defun flush-draw2d ()
-  (when (> *batch-nverts* 0)
-    ;(format t "batch-nverts: ~a~%" *batch-nverts*)
-    (set-shader *tex2d-shader*)
-    (set-color (vec 1 1 1 1))
-    (bind-texture *current-tex* :texture0)
-    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-position+)
-                         :scalar
-                         (coerce *batch-verts* 'vector))
-    (set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-texcoord0+)
-                         :scalar
-                         (coerce *batch-texcoords* 'vector))
-    (upload-geometry *tex2d-geo*)
-    (draw-arrays *tex2d-geo* :triangles 0 *batch-nverts*)
-    (setf *batch-nverts* 0)
-    (setf *current-tex* nil)))
+  (setf *prev-batch* *current-batch*)
+  (setf *prev-primitive* *current-primitive*)
+  (setf *prev-tex* *current-tex*)
+  (when (and *current-batch* *current-primitive* (> *batch-nverts* 0))
+    (unless (and (eq *current-batch* :texture) (null *current-tex*))
+      ;;(format t "batch ~a: ~a (~a)~%" *current-batch* *current-primitive* *batch-nverts*)
+      (let ((geo (if (eq *current-batch* :texture) *tex2d-geo* *color2d-geo*)))
+	(set-color (vec 1 1 1 1))
+	(set-attribute-items (find-attribute geo +vertex-attribute-position+)
+			     :scalar
+			     (coerce *batch-verts* 'vector))
+	(set-attribute-items (find-attribute geo +vertex-attribute-color+)
+                             :scalar
+                             (coerce *batch-colors* 'vector))
+	(case *current-batch*
+	  (:texture
+	   (set-shader *tex2d-shader*)
+	   (bind-texture *current-tex* :texture0)
+	   (set-attribute-items (find-attribute geo +vertex-attribute-texcoord0+)
+				:scalar
+				(coerce *batch-texcoords* 'vector)))
+	  (:color
+	   (set-shader *color2d-shader*)))
+	(upload-geometry geo)
+	(draw-arrays geo *current-primitive* 0 *batch-nverts*)
+	(setf *batch-nverts* 0)
+	(setf *current-batch* nil)
+	(setf *current-tex* nil)
+	(setf *current-primitive* nil)))))
 
-(defun add-to-batch (rec tex-rec)
+(defun set-batch (batch)
+  (unless (eq batch *current-batch*)
+    ;;(format t "flushing because of batch ~a~%" batch)
+    (flush-draw2d)
+    (reset-batch batch *prev-tex* *prev-primitive*)))
+
+(defun set-primitive (prim)
+  (unless (eq prim *current-primitive*)
+    ;;(format t "flushing because of primitive ~a~%" prim)
+    (flush-draw2d)
+    (reset-batch *prev-batch* *prev-tex* prim)))
+
+(defun set-texture (tex)
+  (unless (eq tex *current-tex*)
+    (flush-draw2d)
+    (reset-batch *prev-batch* tex *prev-primitive*)))
+
+(defun ensure-batch-capacity (nextra)
+  (unless (< (+ *batch-nverts* nextra) *batch-maxverts*)
+    (flush-draw2d)
+    (reset-batch *prev-batch* *prev-tex* *prev-primitive*)))
+
+(defun add-vertex-to-texture-batch (px py tx ty cr cg cb ca)
+  (vector-push px *batch-verts*)
+  (vector-push py *batch-verts*)
+  (vector-push tx *batch-texcoords*)
+  (vector-push ty *batch-texcoords*)
+  (vector-push cr *batch-colors*)
+  (vector-push cg *batch-colors*)
+  (vector-push cb *batch-colors*)
+  (vector-push ca *batch-colors*)
+  (incf *batch-nverts*))
+
+(defun add-vertex-to-color-batch (px py cr cg cb ca)
+  ;;(format t "add-vertex-to-color-batch ~a ~a~%" *current-batch* *current-primitive*)
+  (ensure-batch-capacity 1)
+  (vector-push px *batch-verts*)
+  (vector-push py *batch-verts*)
+  (vector-push cr *batch-colors*)
+  (vector-push cg *batch-colors*)
+  (vector-push cb *batch-colors*)
+  (vector-push ca *batch-colors*)
+  (incf *batch-nverts*))
+
+(defun add-textured-quad-to-tex-batch (rec tex-rec)
   (declare (type rect rec tex-rect))
+  (ensure-batch-capacity 6)
   (labels
       ((add-vertex (px py tx ty)
-         (loop for el in (list px py) do (vector-push el *batch-verts*))
-         (loop for el in (list tx ty) do (vector-push el *batch-texcoords*))
-         (incf *batch-nverts*)))
+	 (add-vertex-to-texture-batch px py tx ty 1.0 1.0 1.0 1.0)))
 
     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
                 (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
@@ -139,16 +179,55 @@
     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-maxs rec))
                 (vx2 (rect-mins tex-rec)) (vy2 (rect-maxs tex-rec)))))
 
+(defun draw-rect (rec color)
+  (set-batch :color)
+  (set-primitive :triangles)
+
+  (add-vertex-to-color-batch (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
+			     (vx color) (vy color) (vz color) (vw color))
+
+  (add-vertex-to-color-batch (vx2 (rect-maxs rec)) (vy2 (rect-mins rec))
+			     (vx color) (vy color) (vz color) (vw color))
+
+  (add-vertex-to-color-batch (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec))
+			     (vx color) (vy color) (vz color) (vw color))
+
+  (add-vertex-to-color-batch (vx2 (rect-mins rec)) (vy2 (rect-mins rec))
+			     (vx color) (vy color) (vz color) (vw color))
+
+  (add-vertex-to-color-batch (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec))
+			     (vx color) (vy color) (vz color) (vw color))
+
+  (add-vertex-to-color-batch (vx2 (rect-mins rec)) (vy2 (rect-maxs rec))
+			     (vx color) (vy color) (vz color) (vw color))
+
+  )
+
+(defun draw-lines (positions color)
+  (set-batch :color)
+  (set-primitive :lines)
+  (loop :for i :from 0 :below (length positions) :do
+    (let ((p1 (nth i positions)))
+      (add-vertex-to-color-batch (vx2 p1) (vy2 p1) (vx color) (vy color) (vz color) (vw color))
+      )))
+
+(defun draw-line-loop (positions color)
+  (set-batch :color)
+  (set-primitive :lines)
+  (loop :for i :from 1 :below (length positions) :do
+    (let ((p1 (nth (- i 1) positions))
+	  (p2 (nth (mod i (length positions)) positions)))
+      (add-vertex-to-color-batch (vx2 p1) (vy2 p1) (vx color) (vy color) (vz color) (vw color))
+      (add-vertex-to-color-batch (vx2 p2) (vy2 p2) (vx color) (vy color) (vz color) (vw color))
+      )))
+
 (defun draw-texture-rect (tex rec tex-rec color)
   (declare (type rect rec tex-rect))
   (declare (type vec4 color))
-  (cond
-    ((and (eq tex *current-tex*) (< (+ *batch-nverts* 6) *batch-maxverts*))
-     (add-to-batch rec tex-rec))
-    (t
-     (flush-draw2d)
-     (reset-batch tex)
-     (add-to-batch rec tex-rec))))
+  (set-batch :texture)
+  (set-primitive :triangles)
+  (set-texture tex)
+  (add-textured-quad-to-tex-batch rec tex-rec))
 
 (defun measure-text (text &key (end nil) (out-size nil))
   (let ((cur-x 0.0)
@@ -182,31 +261,28 @@
 	(setf (vx2 out-size) max-x)
 	(setf (vy2 out-size) cur-y)))))
 
+(defconstant +vertex-per-char+ 6)
 (defun draw-text (text pos color &key (out-size nil))
   (declare (type string text))
   (declare (type vec2 pos))
   (declare (type vec4 color))
 
   (unless (zerop (length text))
-
-    (defconstant +vertex-per-char+ 6)
-
     (let* ((cur-x (vx2 pos))
            (cur-y (vy2 pos))
 	   (max-x cur-x)
-           (nverts (* (length text) +vertex-per-char+))
-           (verts (make-array (* nverts 2) :element-type 'single-float :fill-pointer 0))
-           (texcoords (make-array (* nverts 2) :element-type 'single-float :fill-pointer 0)))
+           (nverts (* (length text) +vertex-per-char+)))
+
+      (set-batch :texture)
+      (set-primitive :triangles)
+      (set-texture (font-tex *fnt*))
+      (ensure-batch-capacity nverts)
 
       (setf nverts 0)
 
       (labels
 	  ((find-glyph-data (c)
              (aref (font-atlas-glyph-data (font-fnt *fnt*)) (char-code c)))
-
-	   (add-vertex (px py tx ty)
-             (loop :for el :in (list px py) :do (vector-push el verts))
-             (loop :for el :in (list tx ty) :do (vector-push el texcoords)))
 
 	   (compute-glyph-y (gd)
              (+ (font-glyph-data-adv-y gd) (- cur-y (font-glyph-data-char-height gd))))
@@ -218,17 +294,54 @@
 		   (incf cur-x (font-glyph-data-adv-x gd))
 		   (let* ((rec (rect-from-size
 				(vec cur-x (compute-glyph-y gd))
-				(vec (font-glyph-data-char-width gd) (font-glyph-data-char-height gd))))
+				(vec (font-glyph-data-char-width gd)
+				     (font-glyph-data-char-height gd))))
 			  (tex-rec (make-rect
-				    :mins (vec (font-glyph-data-rect-x gd) (+ (font-glyph-data-rect-height gd) (font-glyph-data-rect-y gd)))
-				    :maxs (vec (+ (font-glyph-data-rect-width gd) (font-glyph-data-rect-x gd)) (font-glyph-data-rect-y gd)))))
+				    :mins (vec
+					   (font-glyph-data-rect-x gd)
+					   (+ (font-glyph-data-rect-height gd)
+					      (font-glyph-data-rect-y gd)))
+				    :maxs (vec
+					   (+ (font-glyph-data-rect-width gd)
+					      (font-glyph-data-rect-x gd))
+					   (font-glyph-data-rect-y gd)))))
 
-		     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
-		     (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-mins rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-mins tex-rec)))
-		     (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
-		     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-mins rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-mins tex-rec)))
-		     (add-vertex (vx2 (rect-maxs rec)) (vy2 (rect-maxs rec)) (vx2 (rect-maxs tex-rec)) (vy2 (rect-maxs tex-rec)))
-		     (add-vertex (vx2 (rect-mins rec)) (vy2 (rect-maxs rec)) (vx2 (rect-mins tex-rec)) (vy2 (rect-maxs tex-rec)))
+		     (add-vertex-to-texture-batch (vx2 (rect-mins rec))
+					      (vy2 (rect-mins rec))
+					      (vx2 (rect-mins tex-rec))
+					      (vy2 (rect-mins tex-rec))
+					      (vx color) (vy color) (vz color) (vw color))
+
+		     (add-vertex-to-texture-batch (vx2 (rect-maxs rec))
+					      (vy2 (rect-mins rec))
+					      (vx2 (rect-maxs tex-rec))
+					      (vy2 (rect-mins tex-rec))
+					      (vx color) (vy color) (vz color) (vw color))
+
+		     (add-vertex-to-texture-batch (vx2 (rect-maxs rec))
+					      (vy2 (rect-maxs rec))
+					      (vx2 (rect-maxs tex-rec))
+					      (vy2 (rect-maxs tex-rec))
+					      (vx color) (vy color) (vz color) (vw color))
+
+		     (add-vertex-to-texture-batch (vx2 (rect-mins rec))
+					      (vy2 (rect-mins rec))
+					      (vx2 (rect-mins tex-rec))
+					      (vy2 (rect-mins tex-rec))
+					      (vx color) (vy color) (vz color) (vw color))
+
+		     (add-vertex-to-texture-batch (vx2 (rect-maxs rec))
+					      (vy2 (rect-maxs rec))
+					      (vx2 (rect-maxs tex-rec))
+					      (vy2 (rect-maxs tex-rec))
+					      (vx color) (vy color) (vz color) (vw color))
+
+		     (add-vertex-to-texture-batch (vx2 (rect-mins rec))
+					      (vy2 (rect-maxs rec))
+					      (vx2 (rect-mins tex-rec))
+					      (vy2 (rect-maxs tex-rec))
+					      (vx color) (vy color) (vz color) (vw color))
+
 		     (incf nverts 6)
 
 		     (incf cur-x (font-glyph-data-char-width gd))
@@ -241,23 +354,9 @@
               (generate-glyph-vertices c))
             (incf cur-y (font-atlas-new-line-height (font-fnt *fnt*))))))
 
-      (when (> (length verts) 0)
-
-	(set-shader *tex2d-shader*)
-	(set-color color)
-	(bind-texture (font-tex *fnt*) :texture0)
-	(set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-position+)
-                             :scalar
-                             (coerce verts 'vector))
-	(set-attribute-items (find-attribute *tex2d-geo* +vertex-attribute-texcoord0+)
-                             :scalar
-                             (coerce texcoords 'vector))
-	(upload-geometry *tex2d-geo*)
-	(draw-arrays *tex2d-geo* :triangles 0 nverts)
-
-	(when out-size
-	  (setf (vx2 out-size) (- max-x (vx2 pos)))
-	  (setf (vy2 out-size) (- cur-y (vy2 pos))))))))
+      (when out-size
+	(setf (vx2 out-size) (- max-x (vx2 pos)))
+	(setf (vy2 out-size) (- cur-y (vy2 pos)))))))
 
 (defun end-draw2d ()
   (gl:disable :blend))
