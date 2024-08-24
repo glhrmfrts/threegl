@@ -21,7 +21,7 @@
     :color-attachment4
     :color-attachment5))
 
-(defun create-framebuffer-texture (target width height filter fmt shadowmap)
+(defun create-framebuffer-texture (target width height filter fmt shadowmap-p)
   (let ((id (gl:gen-texture)))
     (gl:active-texture :texture0)
     (gl:bind-texture target id)
@@ -29,7 +29,7 @@
     (gl:tex-parameter target :texture-min-filter filter)
     (gl:tex-parameter target :texture-wrap-s :clamp-to-edge)
     (gl:tex-parameter target :texture-wrap-t :clamp-to-edge)
-    (when shadowmap
+    (when shadowmap-p
       (gl:tex-parameter target :texture-compare-mode :compare-ref-to-texture))
     (if (eq target :texture-2d-multisample)
 	(%gl:tex-image-2d-multisample target 2 fmt width height nil)
